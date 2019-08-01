@@ -158,6 +158,43 @@ def kullback_leibler_divergence(mus, sigmas):
 
 	return 0.5 * (trace + uu - dim - log_det) 
 
+def evaluate_precision_at_k(scores, edgelist, non_edgelist, k=10):
+	edgelist_dict = {}
+	for u, v in edgelist:
+		if u not in edgelist_dict:
+			edgelist_dict.update({u: []})
+		edgelist_dict[u].append(v)
+
+	precisions = []
+	for u in edgelist_dict:
+		scores_ = scores[u]
+		true_neighbours = edgelist_dict[u]
+		nodes_sorted = scores_.argsort()
+		nodes_sorted = nodes_sorted[nodes_sorted != u][-k:]
+		s = np.mean([u in true_neighbours for u in nodes_sorted])
+		precisions.append(s)
+
+	return np.mean(precisions)
+
+def evaluate_mean_average_precision(scores, edgelist, non_edgelist):
+	edgelist_dict = {}
+	for u, v in edgelist:
+		if u not in edgelist_dict:
+			edgelist_dict.update({u: []})
+		edgelist_dict[u].append(v)
+
+	precisions = []
+	for u in edgelist_dict:
+		scores_ = scores[u]
+		true_neighbours = edgelist_dict[u]
+		labels = np.array([n in true_neighbours 
+			for n in range(len(scores))])
+		mask = np.array([n!=u for n in range(len(scores))])
+		s = average_precision_score(labels[mask], scores_[mask])
+		precisions.append(s)
+
+	return np.mean(precisions)
+
 def evaluate_rank_and_MAP(scores, 
 	edgelist, non_edgelist):
 	assert not isinstance(edgelist, dict)
@@ -302,9 +339,9 @@ def main():
 	test_edges = np.array(list(graph.edges()))
 	test_non_edges = np.array(list(nx.non_edges(graph)))
 
-	# np.random.seed(args.seed)
-	# idx = np.random.permutation(np.arange(len(test_non_edges), dtype=int))[:len(test_edges)]
-	# test_non_edges = test_non_edges[idx]
+	np.random.seed(args.seed)
+	idx = np.random.permutation(np.arange(len(test_non_edges), dtype=int))[:len(test_edges)]
+	test_non_edges = test_non_edges[idx]
 
 	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
@@ -321,18 +358,24 @@ def main():
 	dists = hyperbolic_distance_hyperboloid(embedding,
 		embedding)
 
+	k = 10
+
 	print ("DISTANCE")
 	evaluate_rank_and_MAP(-dists, 
 		test_edges, test_non_edges)
+	print ("PRECISION AT", k)
+	print (evaluate_precision_at_k(-dists, 
+		test_edges, test_non_edges, k=k))
+	print ("MAP")
+	print (evaluate_mean_average_precision(-dists, 
+		test_edges, test_non_edges))
 
 	print ("loading variance from", variance_filename)
 	variance_df = pd.read_csv(variance_filename, index_col=0)
 	variance_df = variance_df.reindex(sorted(variance_df.index))
 	variance = variance_df.values
 
-	print (variance.min(), variance.max())
-	variance = elu(variance, alpha=1-1e-7) + 1
-	print (variance.min(), variance.max())
+	variance = elu(variance, alpha=0.9) + 1
 
 	scores = -kullback_leibler_divergence(embedding, variance)
 	scores = np.squeeze(scores, axis=-1)
@@ -347,22 +390,28 @@ def main():
 	# 	[(v, u) for u, v in graph.edges if (v, u) not in graph.edges])
 	# print ()
 
-	for u, v in np.random.permutation(test_edges)[:10]:
-		print (u, v, scores[u, v])
-	print()
-	print (np.mean([scores[u, v] for u, v in test_edges]))
-	print ()
+	# for u, v in np.random.permutation(test_edges)[:10]:
+	# 	print (u, v, scores[u, v])
+	# print()
+	# print (np.mean([scores[u, v] for u, v in test_edges]))
+	# print ()
 
-	for u, v in np.random.permutation(test_non_edges)[:10]:
-		print (u, v, scores[u, v])
-	print ()
-	print (np.mean([scores[u, v] for u, v in test_non_edges]))
-	print ()
+	# for u, v in np.random.permutation(test_non_edges)[:10]:
+	# 	print (u, v, scores[u, v])
+	# print ()
+	# print (np.mean([scores[u, v] for u, v in test_non_edges]))
+	# print ()
 
 	print ("KULLBACK LEIBLER")
 	(mean_rank_recon, ap_recon, 
 	roc_recon) = evaluate_rank_and_MAP(scores, 
 		test_edges, test_non_edges)
+	print ("PRECISION AT", k)
+	print (evaluate_precision_at_k(scores,  
+		test_edges, test_non_edges, k=k))
+	print ("MAP")
+	print (evaluate_mean_average_precision(scores, 
+		test_edges, test_non_edges))
 
 	raise SystemExit
 

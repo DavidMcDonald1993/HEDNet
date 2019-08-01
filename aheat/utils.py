@@ -223,68 +223,93 @@ def determine_positive_and_negative_samples(graph, features, args):
 			for k in range(args.context_size)}
 			for n in graph}
 
-		for n in graph.nodes():
-			positive_samples[n][0] = set(graph.neighbors(n))
-			negative_samples[n, list(graph.neighbors(n))] = 0
+		for i in range(args.context_size):
+			for n in graph.nodes():
+				if i == 0:
+					s = set(graph.neighbors(n))
+				else:
+					s = set().union(*(positive_samples[u][0] for u in positive_samples[n][i-1])) -\
+						set().union(*(positive_samples[n][j] for j in range(i)))
 
-		if not args.no_walks:
+				s =  s .union( {n} )
+				# s -= {n}
+
+				s = list(s) if len(s) > 0 else [n]#[np.random.choice(list(set(graph) - {n}))]
+				# assert n not in s or len(s) == 1
+				positive_samples[n][i] = s 
+				negative_samples[n, s] = 0
+
+		# if not args.no_walks:
 			
-			print ("determining positive and negative samples using random walks")
+		# 	print ("determining positive and negative samples using random walks")
 
-			walks = perform_walks(graph, features, args)
+		# 	walks = perform_walks(graph, features, args)
 			
-			# print ("computing sps")
-			# import os
-			# fn = "sps"
-			# if not os.path.exists(fn):
-			# 	sps = nx.floyd_warshall_numpy(graph)
-			# 	np.savetxt(fn, sps)
-			# else:
-			# 	print ("loading")
-			# 	sps = np.loadtxt(fn)
-			# print ("done")
+		# print ("computing sps")
+		# import os
+		# fn = "sps"
+		# if not os.path.exists(fn):
+		# 	sps = nx.floyd_warshall_numpy(graph)
+		# 	np.savetxt(fn, sps)
+		# else:
+		# 	print ("loading")
+		# 	sps = np.loadtxt(fn)
+		# print ("done")
 
-			# map_ = {n: i for i, n in enumerate(graph)}
+		# map_ = {n: i for i, n in enumerate(graph)}
 
-			# idx = np.array([map_[n] for n in range(len(graph))])
+		# idx = np.array([map_[n] for n in range(len(graph))])
 
-			# sps = sps[idx]
-			# sps = sps[:,idx]
+		# sps = sps[idx]
+		# sps = sps[:,idx]
 
-			# for walk in walks:
-			# 	for u, v in zip(walk, walk[1:]):
-			# 		assert (u, v) in graph.edges or v == walk[0]
-			# raise SystemExit
+		# for u in positive_samples:
+		# 	for i in range(args.context_size):
+		# 		for v in positive_samples[u][i]:
+		# 			assert sps[u, v] == i + 1 or u == v
+		
+		# for u in positive_samples:
+		# 	neg_samples, = np.where(negative_samples[u])
+		# 	for v in neg_samples:
+		# 		assert sps[u, v] > args.context_size, sps[u, v]
+		# raise SystemExit
 
-			# dists = []
 
-			for num_walk, walk in enumerate(walks):
+		# 	# for walk in walks:
+		# 	# 	for u, v in zip(walk, walk[1:]):
+		# 	# 		assert (u, v) in graph.edges or v == walk[0]
+		# 	# raise SystemExit
 
-				# u = walk[0]
-				# for v in filter(lambda x: x != u, walk[1:]):
-						# counts[u] += 1	
-						# counts[v] += 1
+		# 	# dists = []
 
-				for i in range(len(walk)):
-					u = walk[i]
-					for j in range(args.context_size):
+		# 	for num_walk, walk in enumerate(walks):
 
-						if i+j+1 >= len(walk):
-							break
-						v = walk[i+j+1]
+		# 		# u = walk[0]
+		# 		# for v in filter(lambda x: x != u, walk[1:]):
+		# 				# counts[u] += 1	
+		# 				# counts[v] += 1
 
-						if u == v:
-							continue
+		# 		for i in range(len(walk)):
+		# 			u = walk[i]
+		# 			for j in range(args.context_size):
 
-						positive_samples[u][j].add(v)
-						# if j == 0:
-						# positive_samples.append((u, v))
-						# negative_samples[v, u] = 0
-						# else:
-							# negative_samples[u, v] = 1
+		# 				if i+j+1 >= len(walk):
+		# 					break
+		# 				v = walk[i+j+1]
 
-				if num_walk % 1000 == 0:  
-					print ("processed walk {:04d}/{}".format(num_walk, len(walks)))
+		# 				if u == v:
+		# 					continue
+
+		# 				positive_samples[u][j].add(v)
+		# 				negative_samples[u, v] = 0
+		# 				# if j == 0:
+		# 				# positive_samples.append((u, v))
+		# 				# negative_samples[u, v] = 0
+		# 				# else:
+		# 					# negative_samples[u, v] = 1
+
+		# 		if num_walk % 1000 == 0:  
+		# 			print ("processed walk {:04d}/{}".format(num_walk, len(walks)))
 		# negative_samples = np.isinf(sps)
 
 		print ("DETERMINED POSITIVE AND NEGATIVE SAMPLES")
@@ -293,34 +318,39 @@ def determine_positive_and_negative_samples(graph, features, args):
 
 		# positive_samples = list(set(positive_samples))
 
-
 		# for n in positive_samples:
 		# 	for i in range(args.context_size):
 		# 		idx, = np.where(sps[n] == i+1)
 		# 		positive_samples[n][i] = set(idx)
 
-		for n in positive_samples:
-			for i in range(args.context_size):
-				for j in range(i):
-					# assert len(positive_samples[n][i].intersection(positive_samples[n][j])) == 0
-					positive_samples[n][i] -= positive_samples[n][j]
-					for u in positive_samples[n][i]:
-						assert u not in positive_samples[n][j]
-						# assert sps[n][u] <= i+1
+		# for n in positive_samples:
+		# 	for i in range(args.context_size):
+		# 		for j in range(i):
+		# 			# assert len(positive_samples[n][i].intersection(positive_samples[n][j])) == 0
+		# 			# positive_samples[n][i]  positive_samples[n][j]
+		# 			assert len(positive_samples[n][i]) > 0
+		# 			for u in positive_samples[n][i]:
+		# 				assert u not in positive_samples[n][j]
+		# 				assert sps[n][u] == i+1, (n, u, sps[n,u])
+		# raise SystemExit
 
 		# for n in positive_samples:
 		# 	print (n, len(list(graph.neighbors(n))), [len(positive_samples[n][i]) for i in range(args.context_size)])
+		# 	# print (n)
+		# 	# for i in range(args.context_size):
+		# 	# 	print (positive_samples[n][i])
+		# 	# print ()
 		# raise SystemExit
 
-		nodes = set(graph)
-		for n in positive_samples:
-			covered_nodes = set()
-			for i in range(args.context_size):
-				positive_samples[n][i] = list(positive_samples[n][i]) + [n]
-				assert len(positive_samples[n][i]) > 0
-				for n in positive_samples[n][i]:
-					covered_nodes.add(n)
-			positive_samples[n][args.context_size] = list(nodes - covered_nodes)
+		# nodes = set(graph)
+		# for n in positive_samples:
+		# 	# covered_nodes = set()
+		# 	for i in range(args.context_size):
+		# 		# positive_samples[n][i] = positive_samples[n][i] if len(positive_samples[n][i]) > 0 else [n]
+		# 		assert len(positive_samples[n][i]) > 0
+		# 		for u in positive_samples[n][i]:
+		# 			# covered_nodes.add(n)
+		# 			assert sps[n, u] == i + 1 or n == u
 
 		counts = np.zeros(N)
 
@@ -361,7 +391,6 @@ def determine_positive_and_negative_samples(graph, features, args):
 		# plt.hist(counts)
 		# plt.show()
 		# raise SystemExit
-
 
 		counts = counts ** 0.75
 		counts = np.ones_like(counts)

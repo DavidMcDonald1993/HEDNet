@@ -2,71 +2,59 @@ import numpy as np
 import tensorflow as tf 
 import keras.backend as K
 
+import itertools
+
 def minkowski_dot(x, y):
-    axes = len(x.shape) - 1, len(y.shape) -1
-    return K.batch_dot(x[...,:-1], y[...,:-1], axes=axes) - K.batch_dot(x[...,-1:], y[...,-1:], axes=axes)
+    assert len(x.shape) == len(y.shape)
+    return K.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
 
-def hyperbolic_sigmoid_loss(y_true, y_pred):
+def asym_hyperbolic_loss(y_true, y_pred):
+	num_pos = 3
+	num_neg = 3
 
-    u_emb = y_pred[:,0]
-    samples_emb = y_pred[:,1:]
+	y_pred, mask = y_pred[:,:num_neg+num_pos], y_pred[:,num_neg+num_pos:]
 
-    inner_uv = minkowski_dot(u_emb, samples_emb) 
+	# pred = K.concatenate([   
+	# 	y_pred[:,i:i+1] + K.log(K.sum(K.exp(-y_pred[:,i:]), axis=-1, keepdims=True)) 
+	# 	for i in range(num_pos)	
+	# ])
 
-    pos_p_uv = tf.nn.sigmoid(inner_uv[:,0])
-    neg_p_uv = 1 - tf.nn.sigmoid(inner_uv[:,1:])
+	# pred = - K.log( tf.nn.sigmoid(K.concatenate([y_pred[:,j:j+1] - y_pred[:,i:i+1]
+	# 	for i, j in itertools.combinations(range(num_pos), 2)]
+	# 	+ [y_pred[:,j:j+1] - y_pred[:,i:i+1] 
+	# 	for i, j in itertools.product(range(num_pos), range(num_pos, num_pos+num_neg))]
+	# 	, axis=-1)) )
 
-    pos_p_uv = K.clip(pos_p_uv, min_value=K.epsilon(), max_value=1-K.epsilon())
-    neg_p_uv = K.clip(neg_p_uv, min_value=K.epsilon(), max_value=1-K.epsilon())
+	y_pred_pos = K.square(y_pred)
+	y_pred_neg = K.exp(-y_pred)
+	pred = K.concatenate([y_pred_pos[:,i:i+1] + y_pred_neg[:,j:j+1]
+		for i, j in itertools.combinations(range(num_pos), 2)]
+		+ [y_pred_pos[:,i:i+1] + y_pred_neg[:,j:j+1]
+		for i, j in itertools.product(range(num_pos), 
+		range(num_pos, num_pos + num_neg))], axis=-1)
 
-    return - K.mean( K.log( pos_p_uv ) + K.sum( K.log( neg_p_uv ), axis=-1) )
+	mask = K.concatenate([mask[:,i:i+1] * mask[:,j:j+1]
+		for i, j in itertools.combinations(range(num_pos), 2)]
+		+ [mask[:,i:i+1] * mask[:,j:j+1]
+		for i, j in itertools.product(range(num_pos), 
+		range(num_pos, num_pos + num_neg))], axis=-1)
 
-def hyperbolic_softmax_loss(sigma=1.):
+	# pred = K.concatenate([tf.nn.sparse_softmax_cross_entropy_with_logits(\
+	# 	labels=y_true[:,0], 
+	# 	logits=-y_pred[:,i:], )[:,None]
+	# 	for i in range(num_pos)]
+	# 	, axis=-1)
 
-    def loss(y_true, y_pred, sigma=sigma):
+	return K.sum(mask * pred / (K.sum(mask) + 1e-7))
+	# return K.mean(K.sum(mask * pred / (K.sum(mask, axis=-1, keepdims=True) + 1e-7), axis=-1, keepdims=False) )
+	# return K.mean(K.mean(pred, axis=-1))
 
-        source_node_embedding = y_pred[:,0]
-        target_nodes_embedding = y_pred[:,1:]
-        
-        inner_uv = minkowski_dot(source_node_embedding, target_nodes_embedding) 
-        inner_uv = -inner_uv #+ 1e-14
-        inner_uv = K.maximum(inner_uv, 1. + K.epsilon())
-
-        d_uv = tf.acosh(inner_uv) 
-        minus_d_uv_sq = - 0.5 * K.square(d_uv / sigma)
-
-        return K.mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_true[:,0,0], logits=minus_d_uv_sq)) 
-
-    return loss
-
-def hyperbolic_hypersphere_loss(r, t):
-
-    def loss(y_true, y_pred, r=r, t=t):
-
-        u_emb = y_pred[:,0]
-        samples_emb = y_pred[:,1:]
-        
-        inner_uv = minkowski_dot(u_emb, samples_emb) 
-        inner_uv = -inner_uv - 1. + 1e-7
-        inner_uv = K.maximum(inner_uv, K.epsilon()) # clip to avoid nan
-
-        d_uv = tf.acosh(1. + inner_uv) 
-        d_uv_sq = K.square(d_uv)
-
-        r_sq = K.square(r)
-        # r_sq = K.stop_gradient( K.mean(d_uv_sq) )
-
-        out_uv = (r_sq - d_uv_sq) / t
-
-        pos_out_uv = out_uv[:,0]
-        neg_out_uv = out_uv[:,1:]
-        
-        pos_p_uv = tf.nn.sigmoid(pos_out_uv)
-        neg_p_uv = 1 - tf.nn.sigmoid(neg_out_uv)
-
-        pos_p_uv = K.clip(pos_p_uv, min_value=1e-7, max_value=1-1e-7)
-        neg_p_uv = K.clip(neg_p_uv, min_value=1e-7, max_value=1-1e-7)
-
-        return - K.mean( K.log( pos_p_uv ) + K.sum( K.log( neg_p_uv ), axis=-1))
-
-    return loss
+	# pred = K.concatenate( [y_pred[:,i:i+1]**2 + K.exp(-y_pred[:,j:j+1]) 
+		# for i in range(d) for j in range(i+1, d)], axis=-1)
+	# return K.mean( K.mean( pred,	axis=-1, keepdims=True ) )
+	# return K.mean(y_pred[:,:1] ** 2 + \
+	# 	K.mean(K.exp(-y_pred[:,1:]), axis=-1, keepdims=True))
+	# return -K.mean(K.exp(y_pred[:,:1]) - K.mean(K.exp(y_pred[:,1:]), axis=-1, keepdims=True))
+	# return K.mean(1 - 1 / (1 - y_pred[:,:1]) + K.mean(1 / (1 -y_pred[:,1:]), axis=-1, keepdims=True))
+	# return K.mean(tf.nn.sparse_softmax_cross_entropy_with_logits(\
+	# 	labels=y_true[:,0], logits=-y_pred))
