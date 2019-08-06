@@ -47,7 +47,7 @@ class TrainingDataGenerator(Sequence):
 		self.mask = np.zeros((len(positive_samples), self.context_size))
 		for n in positive_samples:
 			for i in range(self.context_size):
-				if False:#len(positive_samples[n][i]) == 1 and n in positive_samples[n][i]:
+				if len(positive_samples[n][i]) == 1 and n in positive_samples[n][i]:
 					x = 0
 					# self.positive_samples[n][i] = [np.random.choice(list(set(positive_samples) - {n}))]
 				else:
@@ -90,32 +90,24 @@ class TrainingDataGenerator(Sequence):
 			for u in source_nodes
 		], dtype=np.int64)
 
-		# for (u, v), neg_samples in zip(batch_positive_samples.tolist(), batch_negative_samples):
-		# 	assert u != v, (u, v)
-		# 	assert v in self.graph.neighbors(u)
-		# 	for v_ in neg_samples:
-		# 		assert u != v_, ("neg", u, v_)
-		# 		assert v_ not in self.graph.neighbors(u)
-		# print (batch_negative_samples)
-		# raise SystemExit
-
 		batch_nodes = np.concatenate([batch_positive_samples, 
 			batch_negative_samples], axis=1)
 
 		return batch_nodes
 
 	def __len__(self):
-		# return 10000
-		return int(np.ceil(len(self.positive_samples) / float(self.batch_size)))
+		return 10000
+		# return int(np.ceil(len(self.positive_samples) / float(self.batch_size)))
 
 	def __getitem__(self, batch_idx):
 		batch_size = self.batch_size
 		positive_samples = self.positive_samples
 		# np.random.seed(batch_idx)
 		
-		nodes = self.nodes[batch_idx * batch_size : (batch_idx + 1) * batch_size]
+		# nodes = self.nodes[batch_idx * batch_size : (batch_idx + 1) * batch_size]
 		# nodes = np.random.choice(self.nodes, size=batch_size, replace=True)
-		# nodes = random.choices(self.nodes, k=batch_size)
+		nodes = random.choices(self.nodes, k=batch_size)
+
 
 		batch_positive_samples = np.array([[n] + [
 			# np.random.choice(positive_samples[n][k])
@@ -133,10 +125,10 @@ class TrainingDataGenerator(Sequence):
 		# for i in range(len(training_sample)):
 		# 	u = training_sample[i, 0]
 		# 	for j, v in enumerate(training_sample[i, 1:]):
-		# 		if j < 3:
-		# 			assert self.sps[u, v] == j+1 or u==v
+		# 		if j < self.context_size:
+		# 			assert self.sps[u, v] == j+1 or u==v, (u, v, self.sps[u, v], j)
 		# 		else:
-		# 			assert self.sps[u, v] > 3
+		# 			assert self.sps[u, v] > self.context_size
 
 		mask = np.ones((training_sample.shape[0], training_sample.shape[1]-1))
 		for row, n in enumerate(training_sample[:,0]):
@@ -147,20 +139,15 @@ class TrainingDataGenerator(Sequence):
 		# mask_ = np.concatenate([mask[:,i:i+1] * mask[:,j:j+1]
 		# for i, j in itertools.combinations(range(3), 2)]
 		# + [mask[:,i:i+1] * mask[:,j:j+1]
-		# for i, j in itertools.product(range(3), range(3, 3+0))]
+		# for i, j in itertools.product(range(3), range(3, 3+30))]
 		# , axis=-1)
 
-		# mask_ /= mask_.sum()
-		# print (mask_)
-		# raise SystemExit
-
-		# assert (mask_ > 0).any(-1).all()
+		# assert mask_.sum() > 0
 
 		return [training_sample, mask], target
 
 	def on_epoch_end(self):
-		pass
-		# self.nodes = np.random.permutation(self.nodes)
+		self.nodes = np.random.permutation(self.nodes)
 
 		# positive_samples = self.positive_samples
 		# idx = np.random.permutation(len(positive_samples))

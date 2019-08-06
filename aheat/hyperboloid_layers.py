@@ -85,6 +85,8 @@ def minkowski_dot(x, y):
 
 def parallel_transport(p, q, x):
 	alpha = -minkowski_dot(p, q)
+	alpha = K.maximum(alpha, 1+K.epsilon())
+
 	return x + minkowski_dot(q - alpha * p, x) * (p + q)  / \
 		K.maximum(alpha + 1, K.epsilon()) 
 
@@ -93,13 +95,13 @@ def logarithmic_map(p, x):
 
 	alpha = -minkowski_dot(p, x)
 
-	alpha = K.maximum(alpha, 1+K.epsilon())
+	alpha = K.maximum(alpha, 1 + K.epsilon())
 
 	return tf.acosh(alpha) * (x - alpha * p) / \
 		K.maximum(K.sqrt(K.maximum(alpha ** 2 - 1., 0.)), K.epsilon())		  
 		# K.sqrt(alpha ** 2 - 1)		  
 
-def hyperboloid_initializer(shape, r_max=1e-2):
+def hyperboloid_initializer(shape, r_max=0.001):
 
 	def poincare_ball_to_hyperboloid(X, append_t=True):
 		x = 2 * X
@@ -167,13 +169,13 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 		self.embedding = self.add_weight(name='hyperbolic_embedding', 
 		  shape=(self.num_nodes, self.embedding_dim),
 		  initializer=hyperboloid_initializer,
-		  trainable=False)
+		  trainable=True)
 		assert self.embedding.shape[1] == self.embedding_dim + 1
 		self.covariance = self.add_weight(name='euclidean_covariance', 
 		  shape=(self.num_nodes, self.embedding_dim),
 		#   initializer="glorot_uniform",
 			initializer=tf.contrib.layers.xavier_initializer(dtype=tf.float64),
-		#   initializer="ones",
+		#   initializer="zeros",
 		#   initializer=RandomNormal(mean=min_, 
 		#   stddev=1e-30,), 
 		  trainable=True)

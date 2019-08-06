@@ -1,7 +1,6 @@
 import os
 os.environ["PYTHON_EGG_CACHE"] = "/rds/projects/2018/hesz01/poincare-embeddings/python-eggs"
 
-
 import numpy as np
 import networkx as nx
 import pandas as pd
@@ -10,14 +9,12 @@ import argparse
 
 from aheat.utils import load_embedding, load_data
 
-from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 from sklearn.metrics.pairwise import euclidean_distances
-
+from sklearn.metrics import average_precision_score, roc_auc_score
 import functools
 import fcntl
 
 import glob
-
 
 def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
@@ -122,10 +119,6 @@ def kullback_leibler_divergence(mus, sigmas):
 	to_tangent_space = logarithmic_map(source_mus, 
 		target_mus)
 
-	# dists = hyperbolic_distance_hyperboloid(source_mus,
-	# 	target_mus)
-	# dists = np.squeeze(dists, 1)
-
 	# parallel transport to mu zero
 	mu_zero = np.zeros((1, 1, dim + 1))
 	mu_zero[..., -1] = 1
@@ -158,42 +151,8 @@ def kullback_leibler_divergence(mus, sigmas):
 
 	return 0.5 * (trace + uu - dim - log_det) 
 
-def evaluate_precision_at_k(scores, edgelist, non_edgelist, k=10):
-	edgelist_dict = {}
-	for u, v in edgelist:
-		if u not in edgelist_dict:
-			edgelist_dict.update({u: []})
-		edgelist_dict[u].append(v)
-
-	precisions = []
-	for u in edgelist_dict:
-		scores_ = scores[u]
-		true_neighbours = edgelist_dict[u]
-		nodes_sorted = scores_.argsort()
-		nodes_sorted = nodes_sorted[nodes_sorted != u][-k:]
-		s = np.mean([u in true_neighbours for u in nodes_sorted])
-		precisions.append(s)
-
-	return np.mean(precisions)
-
-def evaluate_mean_average_precision(scores, edgelist, non_edgelist):
-	edgelist_dict = {}
-	for u, v in edgelist:
-		if u not in edgelist_dict:
-			edgelist_dict.update({u: []})
-		edgelist_dict[u].append(v)
-
-	precisions = []
-	for u in edgelist_dict:
-		scores_ = scores[u]
-		true_neighbours = edgelist_dict[u]
-		labels = np.array([n in true_neighbours 
-			for n in range(len(scores))])
-		mask = np.array([n!=u for n in range(len(scores))])
-		s = average_precision_score(labels[mask], scores_[mask])
-		precisions.append(s)
-
-	return np.mean(precisions)
+def euclidean_distance(X):
+	return euclidean_distances(X)
 
 def evaluate_rank_and_MAP(scores, 
 	edgelist, non_edgelist):
@@ -240,6 +199,33 @@ def evaluate_rank_and_MAP(scores,
 		"AUROC =", auc_score)
 
 	return ranks, ap_score, auc_score
+
+def evaluate_mean_average_precision(scores, 
+	edgelist, 
+	non_edgelist):
+	edgelist_dict = {}
+	for u, v in edgelist:
+		if u not in edgelist_dict:
+			edgelist_dict.update({u: []})
+		edgelist_dict[u].append(v)
+
+	non_edgelist_dict = {}
+	for u, v in non_edgelist:
+		if u not in non_edgelist_dict:
+			non_edgelist_dict.update({u: []})
+		non_edgelist_dict[u].append(v)
+
+	precisions = []
+	for u in edgelist_dict:
+		true_neighbours = edgelist_dict[u]
+		non_neighbours = non_edgelist_dict[u]
+		labels = np.append(np.ones_like(true_neighbours), 
+		np.zeros_like(non_neighbours))
+		scores_ = scores[u, true_neighbours+non_neighbours]
+		s = average_precision_score(labels, scores_)
+		precisions.append(s)
+
+	return np.mean(precisions)
 
 def touch(path):
 	with open(path, 'a'):
@@ -293,29 +279,32 @@ def save_test_results(filename, seed, data, ):
 def threadsafe_save_test_results(lock_filename, filename, seed, data):
 	threadsafe_fn(lock_filename, save_test_results, filename=filename, seed=seed, data=data)
 
-
 def parse_args():
 
-	parser = argparse.ArgumentParser(description='Load Hyperboloid Embeddings and evaluate reconstruction')
+	parser = argparse.ArgumentParser(description='Load Hyperboloid Embeddings and evaluate link prediction')
 	
+
 	parser.add_argument("--edgelist", dest="edgelist", type=str, 
 		help="edgelist to load.")
 	parser.add_argument("--features", dest="features", type=str, 
 		help="features to load.")
 	parser.add_argument("--labels", dest="labels", type=str, 
 		help="path to labels")
-
-	parser.add_argument('--directed', action="store_true", help='flag to train on directed graph')
-
+	parser.add_argument("--output", dest="output", type=str, 
+		help="path to load training and removed edges")
+	
 	parser.add_argument("--embedding", dest="embedding_directory",  
 		help="directory of embedding to load.")
 
 	parser.add_argument("--test-results-dir", dest="test_results_dir",  
 		help="path to save results.")
 
+	parser.add_argument('--directed', action="store_true", help='flag to train on directed graph')
+
 	parser.add_argument("--seed", type=int, default=0)
 
-	parser.add_argument("--poincare", action="store_true")
+	parser.add_argument("--dist_fn", dest="dist_fn", type=str,
+		choices=["poincare", "hyperboloid", "euclidean", "kullback_leibler"])
 
 	return parser.parse_args()
 
@@ -329,24 +318,33 @@ def main():
 
 	args = parse_args()
 
+
 	args.directed = True
 
-	graph, features, node_labels = load_data(args)
+	graph, _, _ = load_data(args)
 	assert nx.is_directed(graph)
 	print ("Loaded dataset")
 	print ()
 
-	test_edges = np.array(list(graph.edges()))
-	test_non_edges = np.array(list(nx.non_edges(graph)))
+	dist_fn = args.dist_fn
+	assert dist_fn == "kullback_leibler"
 
-	np.random.seed(args.seed)
-	idx = np.random.permutation(np.arange(len(test_non_edges), dtype=int))[:len(test_edges)]
-	test_non_edges = test_non_edges[idx]
+	seed= args.seed
+	removed_edges_dir = os.path.join(args.output, "seed={:03d}".format(seed), "removed_edges")
+
+	test_edgelist_fn = os.path.join(removed_edges_dir, "test_edges.tsv")
+	test_non_edgelist_fn = os.path.join(removed_edges_dir, "test_non_edges.tsv")
+
+	print ("loading test edges from {}".format(test_edgelist_fn))
+	print ("loading test non-edges from {}".format(test_non_edgelist_fn))
 
 	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
-	embedding_filename, variance_filename = files[-2:]
-	# embedding_filename = files[-1]
+
+	if dist_fn == "kullback_leibler":
+		embedding_filename, variance_filename = files[-2:]
+	else:
+		embedding_filename = files[-1]
 
 	print ("loading embedding from", embedding_filename)
 	embedding_df = load_embedding(embedding_filename)
@@ -355,71 +353,46 @@ def main():
 	# row 1 is embedding for node 1 etc...
 	embedding = embedding_df.values
 
-	dists = hyperbolic_distance_hyperboloid(embedding,
-		embedding)
+	if dist_fn == "kullback_leibler":
+		print ("loading variance from", variance_filename)
+		variance_df = load_embedding(variance_filename)
+		variance_df = variance_df.reindex(sorted(variance_df.index))
+		# row 0 is embedding for node 0
+		# row 1 is embedding for node 1 etc...
+		variance = variance_df.values
+		variance = elu(variance, alpha=.9) + 1
 
-	print ("DISTANCE")
-	evaluate_rank_and_MAP(-dists, 
-		test_edges, test_non_edges)
-	for k in (1, 3, 5, 10):
-		print ("PRECISION AT", k)
-		print (evaluate_precision_at_k(-dists, 
-			test_edges, test_non_edges, k=k))
-	print ("MAP")
-	print (evaluate_mean_average_precision(-dists, 
-		test_edges, test_non_edges))
+	if dist_fn == "poincare":
+		dists = hyperbolic_distance_poincare(embedding)
+	elif dist_fn == "hyperboloid":
+		dists = hyperbolic_distance_hyperboloid(embedding, embedding)
+	elif dist_fn == "kullback_leibler":
+		dists = kullback_leibler_divergence(embedding, variance)
+		dists = np.squeeze(dists, -1)
+	else: 
+		dists = euclidean_distance(embedding)
 
-	print ("loading variance from", variance_filename)
-	variance_df = pd.read_csv(variance_filename, index_col=0)
-	variance_df = variance_df.reindex(sorted(variance_df.index))
-	variance = variance_df.values
-
-	variance = elu(variance, alpha=0.9) + 1
-
-	scores = -kullback_leibler_divergence(embedding, variance)
-	scores = np.squeeze(scores, axis=-1)
-
-	print ()
-	print ("DIRECTION")
-	print (np.mean([scores[u, v] > scores[v, u] for u, v in graph.edges() if (v, u) not in graph.edges()]))
-	print()
-	# (mean_rank_recon, ap_recon, 
-	# roc_recon) = evaluate_rank_and_MAP(scores, 
-	# 	[(u, v) for u, v in graph.edges if (v, u) not in graph.edges], 
-	# 	[(v, u) for u, v in graph.edges if (v, u) not in graph.edges])
-	# print ()
-
-	# for u, v in np.random.permutation(test_edges)[:10]:
-	# 	print (u, v, scores[u, v])
-	# print()
-	# print (np.mean([scores[u, v] for u, v in test_edges]))
-	# print ()
-
-	# for u, v in np.random.permutation(test_non_edges)[:10]:
-	# 	print (u, v, scores[u, v])
-	# print ()
-	# print (np.mean([scores[u, v] for u, v in test_non_edges]))
-	# print ()
-
-	print ("KULLBACK LEIBLER")
-	(mean_rank_recon, ap_recon, 
-	roc_recon) = evaluate_rank_and_MAP(scores, 
-		test_edges, test_non_edges)
-	for k in (1, 3, 5, 10):
-		print ("PRECISION AT", k)
-		print (evaluate_precision_at_k(scores,  
-			test_edges, test_non_edges, k=k))
-	print ("MAP")
-	print (evaluate_mean_average_precision(scores, 
-		test_edges, test_non_edges))
-
-	raise SystemExit
+	test_edges = read_edgelist(test_edgelist_fn)
+	test_non_edges = read_edgelist(test_non_edgelist_fn)
 
 	test_results = dict()
 
-	test_results.update({"mean_rank_recon": mean_rank_recon, 
-		"ap_recon": ap_recon,
-		"roc_recon": roc_recon})
+	(mean_rank_lp, ap_lp, 
+	roc_lp) = evaluate_rank_and_MAP(-dists, 
+	test_edges, test_non_edges)
+
+	test_results.update({"mean_rank_lp": mean_rank_lp, 
+		"ap_lp": ap_lp,
+		"roc_lp": roc_lp})
+
+	map_lp = evaluate_mean_average_precision(-dists, 
+		test_edges, nx.non_edges(graph))
+
+	print ("MAP lp", map_lp)
+
+	test_results.update({"map_lp": map_lp})
+
+	raise SystemExit
 
 	test_results_dir = args.test_results_dir
 	if not os.path.exists(test_results_dir):
@@ -430,7 +403,7 @@ def main():
 
 	print ("saving test results to {}".format(test_results_filename))
 
-	threadsafe_save_test_results(test_results_lock_filename, test_results_filename, args.seed, data=test_results )
+	threadsafe_save_test_results(test_results_lock_filename, test_results_filename, seed, data=test_results )
 
 	print ("done")
 

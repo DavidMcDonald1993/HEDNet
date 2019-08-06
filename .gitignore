@@ -7,3 +7,6 @@ aheat/hyperbolic_feedforward.py
 walks
 embeddings
 *.png
+datasets
+edgelists
+sps

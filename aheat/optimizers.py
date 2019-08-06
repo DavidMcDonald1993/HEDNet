@@ -18,33 +18,41 @@ def minkowski_dot(x, y):
     return K.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
 
 def normalise_to_hyperboloid(x):
-	# t = K.sqrt(K.sum(K.square(x[:,:-1]), axis=-1, keepdims=True) + 1)
-	# return K.concatenate([x[:,:-1], t], axis=-1)
-	return x / K.maximum( K.sqrt( K.maximum( -minkowski_dot(x, x), 0.) ), K.epsilon())
+    # x = x[:,:-1]
+    # t = K.sqrt(K.sum(K.square(x), axis=-1, keepdims=True) + 1)
+    # return K.concatenate([x, t], axis=-1)
+    return x / K.maximum( K.sqrt( K.maximum( -minkowski_dot(x, x), 0.) ), K.epsilon())
 
 def exponential_mapping( p, x ):
 
-	r = K.sqrt( K.maximum( 
-		minkowski_dot(x, x), 0) ) 
-	####################################################
-	exp_map_p = tf.cosh(r) * p
+    r = K.sqrt( K.maximum( 
+        minkowski_dot(x, x), 0) ) 
+    ####################################################
+    exp_map_p = tf.cosh(r) * p
 
-	idx = tf.cast( tf.where(r > K.cast(0., K.floatx()), )[:,0], tf.int64)
-	non_zero_norm = tf.gather(r, idx)
-	z = tf.gather(x, idx) / non_zero_norm
+    idx = tf.where(r > 0)[:,0]
+    non_zero_norm = tf.gather(r, idx)
 
-	updates = tf.sinh(non_zero_norm) * z
-	dense_shape = tf.cast( tf.shape(p), tf.int64)
-	exp_map_x = tf.scatter_nd(indices=idx[:,None], updates=updates, shape=dense_shape)
-	
-	exp_map = exp_map_p + exp_map_x 
-	#####################################################
-	# z = x / K.maximum(r, K.epsilon()) # unit norm 
-	# exp_map = tf.cosh(r) * p + tf.sinh(r) * z
-	#####################################################
-	exp_map = normalise_to_hyperboloid(exp_map) # account for floating point imprecision
+    z = tf.gather(x, idx) / non_zero_norm
 
-	return exp_map
+    # non_zero_norm = K.minimum(non_zero_norm, 1e-3)
+
+    updates = tf.sinh(non_zero_norm) * z
+    # updates = normalise_to_hyperboloid(updates)
+    dense_shape = tf.cast( tf.shape(p), tf.int64)
+    # exp_map = tf.scatter_update(ref=p, indices=idx, updates=updates)
+    exp_map_x = tf.scatter_nd(indices=idx[:,None], updates=updates, shape=dense_shape)
+
+
+    exp_map = exp_map_p + exp_map_x 
+    #####################################################
+    # z = x / K.maximum(r, K.epsilon()) # unit norm 
+    # r = K.minimum(r, 1.)
+    # exp_map = tf.cosh(r) * p + tf.sinh(r) * z
+    #####################################################
+    exp_map = normalise_to_hyperboloid(exp_map) # account for floating point imprecision
+
+    return exp_map
 
 def project_onto_tangent_space( 
     hyperboloid_point, 
@@ -81,7 +89,6 @@ class ExponentialMappingOptimizer(optimizer.Optimizer):
 		
 	def _apply_sparse(self, grad, var):
 
-
 		if "hyperbolic" in var.name:
 
 			indices = grad.indices
@@ -108,8 +115,6 @@ class ExponentialMappingOptimizer(optimizer.Optimizer):
 		else:
 			# euclidean update using Adam optimizer
 			return self.euclidean_optimizer.apply_gradients( [(grad, var), ] )
-
-
 
 class MyAdamOptimizer(optimizer.Optimizer):
   """Optimizer that implements the Adam algorithm.
@@ -267,6 +272,8 @@ class MyAdamOptimizer(optimizer.Optimizer):
     # m_t = beta1 * m + (1 - beta1) * g_t
     m = self.get_slot(var, "m")
     m_scaled_g_values = grad * (1 - beta1_t)
+    # if "hyperbolic" in var.name:
+    #     m_scaled_g_values = K.concatenate([m_scaled_g_values[:,:-1], -m_scaled_g_values[:,-1:]], axis=-1)
     m_t = state_ops.assign(m, m * beta1_t, use_locking=self._use_locking)
     with ops.control_dependencies([m_t]):
         m_t = scatter_add(m, indices, m_scaled_g_values)
@@ -274,17 +281,23 @@ class MyAdamOptimizer(optimizer.Optimizer):
     # v_t = beta2 * v + (1 - beta2) * (g_t * g_t)
     v = self.get_slot(var, "v")
     v_scaled_g_values = (grad * grad) * (1 - beta2_t)
+    # if "hyperbolic" in var.name:
+    #     v_scaled_g_values = K.concatenate([v_scaled_g_values[:,:-1], -v_scaled_g_values[:,-1:]], axis=-1)
     v_t = state_ops.assign(v, v * beta2_t, use_locking=self._use_locking)
     with ops.control_dependencies([v_t]):
         v_t = scatter_add(v, indices, v_scaled_g_values)
-    v_sqrt = math_ops.sqrt(v_t)
+    v_sqrt = math_ops.sqrt(K.maximum(v_t, K.epsilon()))
+    # v_sqrt = K.concatenate([math_ops.sqrt(v_t[:,:-1]), -math_ops.sqrt(-v_t[:,-1:])])
 
     if "hyperbolic" in var.name:
-        gr = m_t / (v_sqrt + epsilon_t)
-        # g_norm = K.sqrt(K.maximum(minkowski_dot(g, g), 0))
-        # g = K.concatenate([g[:,:-1], -g[:,-1:]])
+        gr = m_t / K.maximum(v_sqrt + epsilon_t + 0, K.epsilon())
+        # gr = tf.scatter_nd(indices=indices[:,None], updates=grad, shape=tf.cast(tf.shape(var), tf.int64))
+        # g_norm = K.sqrt(K.maximum(minkowski_dot(gr, gr), 0))
+        # gr = K.concatenate([gr[:,:-1], -gr[:,-1:]])
         gr = project_onto_tangent_space(var, gr)
-        # g = g_norm * g / K.maximum(K.sqrt(K.maximum(minkowski_dot(g, g), 0)), K.epsilon())
+        # g_norm = K.sqrt(K.maximum(minkowski_dot(gr, gr), 0))
+        # gr = K.minimum(g_norm, 1) * gr / (g_norm  +1e-8)
+        # gr = g_norm * gr / K.maximum(K.sqrt(K.maximum(minkowski_dot(gr, gr), 0)), K.epsilon())
         var_update = state_ops.assign(
              var, exponential_mapping(var, -lr * gr), use_locking=self._use_locking)
     else:
@@ -297,7 +310,7 @@ class MyAdamOptimizer(optimizer.Optimizer):
         grad.values,
         var,
         grad.indices,
-        lambda x, i, v: state_ops.scatter_add(  # pylint: disable=g-long-lambda
+        lambda x, i, v: state_ops.scatter_add( 
             x,
             i,
             v,
@@ -315,8 +328,8 @@ class MyAdamOptimizer(optimizer.Optimizer):
   def _finish(self, update_ops, name_scope):
     # Update the power accumulators.
     with ops.control_dependencies(update_ops):
-      beta1_power, beta2_power = self._get_beta_accumulators()
-      with ops.colocate_with(beta1_power):
+        beta1_power, beta2_power = self._get_beta_accumulators()
+    with ops.colocate_with(beta1_power):
         update_beta1 = beta1_power.assign(
             beta1_power * self._beta1_t, use_locking=self._use_locking)
         update_beta2 = beta2_power.assign(

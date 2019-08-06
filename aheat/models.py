@@ -23,8 +23,8 @@ def build_hyperboloid_asym_model(num_nodes,
 
 	model = Model([x, mask], hyperboloid_embedding)
 
-	# optimizer = ExponentialMappingOptimizer(lr=lr,)
-	optimizer = MyAdamOptimizer()
+	optimizer = ExponentialMappingOptimizer(lr=lr,)
+	# optimizer = MyAdamOptimizer()
 
 	model.compile(optimizer=optimizer, 
 		loss=asym_hyperbolic_loss,

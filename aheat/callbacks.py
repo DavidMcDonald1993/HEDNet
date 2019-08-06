@@ -9,6 +9,8 @@ import pandas as pd
 
 from keras.callbacks import Callback
 
+from aheat.utils import hyperboloid_to_poincare_ball
+
 def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
 	return np.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
@@ -52,12 +54,13 @@ class Checkpointer(Callback):
 	def save_model(self):
 		embedding_filename = os.path.join(self.embedding_directory, "{:05d}_embedding.csv".format(self.epoch))
 		embedding = self.model.get_weights()[0]
+		assert embedding.shape[1] == 11
 		assert not np.any(np.isnan(embedding))
 		assert not np.any(np.isinf(embedding))
-		assert (embedding[:,-1] > 0).all()
-		assert np.allclose(minkowski_dot(embedding, embedding), -1)
+		assert (embedding[:,-1] > 0).all(), embedding[:,-1]
+		assert np.allclose(minkowski_dot(embedding, embedding), -1), minkowski_dot(embedding, embedding)
 		# print (embedding[:5,-5:])
-		print ("min t:", embedding[:,-1].min(), "max t:", embedding[:,-1].max())
+		# print ("min t:", embedding[:,-1].min(), "max t:", embedding[:,-1].max())
 		print ("saving current embedding to {}".format(embedding_filename))
 
 		# u = np.expand_dims(embedding, 1)
@@ -68,12 +71,18 @@ class Checkpointer(Callback):
 		embedding_df = pd.DataFrame(embedding, index=self.nodes)
 		embedding_df.to_csv(embedding_filename)
 
+		embedding = hyperboloid_to_poincare_ball(embedding)
+		norm = np.linalg.norm(embedding, axis=-1)
+		print ("min norm", norm.min(), "max_norm", norm.max())
+
+
 		variance_filename = os.path.join(self.embedding_directory, "{:05d}_variance.csv".format(self.epoch))
 		variance = self.model.get_weights()[1]
+		assert variance.shape[1] == 10
 
 		variance_ = elu(variance, alpha=0.9) + 1
 
-		print (variance_[:5][:,:5])
+		# print (variance_[:5][:,:5])
 		print ("variance min:", variance_.min(), "variance max:", variance_.max())
 
 		# print ("saving current variance to {}".format(variance_filename))

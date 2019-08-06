@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import h5py
 import multiprocessing 
 import re
@@ -194,6 +194,11 @@ def main():
 	if not args.visualise and node_labels is not None:
 		node_labels = None
 	print ("Loaded dataset")
+
+	# graph = max(nx.strongly_connected_component_subgraphs(graph), key=len)
+	# graph = nx.convert_node_labels_to_integers(graph)
+	# print (len(graph))
+	# raise SystemExit
 
 	if False:
 		plot_degree_dist(graph, "degree distribution")

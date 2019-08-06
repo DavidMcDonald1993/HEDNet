@@ -231,8 +231,8 @@ def determine_positive_and_negative_samples(graph, features, args):
 					s = set().union(*(positive_samples[u][0] for u in positive_samples[n][i-1])) -\
 						set().union(*(positive_samples[n][j] for j in range(i)))
 
-				s =  s .union( {n} )
-				# s -= {n}
+				# s =  s .union( {n} )
+				s -= {n}
 
 				s = list(s) if len(s) > 0 else [n]#[np.random.choice(list(set(graph) - {n}))]
 				# assert n not in s or len(s) == 1
