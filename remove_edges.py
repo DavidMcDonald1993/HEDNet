@@ -7,7 +7,7 @@ import networkx as nx
 
 import argparse
 
-from aheat.utils import load_data
+from hednet.utils import load_data
 
 def write_edgelist_to_file(edgelist, file):
 	with open(file, "w+") as f:
