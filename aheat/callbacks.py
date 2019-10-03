@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import re
-import sys
 import os
 import glob
 import numpy as np
@@ -26,7 +24,6 @@ def elu(x, alpha=1.):
 	x[mask] = alpha * (np.exp(x[mask]) - 1)
 	return x
 
-
 class Checkpointer(Callback):
 
 	def __init__(self, 
@@ -42,26 +39,32 @@ class Checkpointer(Callback):
 
 	def on_epoch_end(self, batch, logs={}):
 		self.epoch += 1
+		if self.epoch % 1 != 0:
+			return
 		print ("Epoch {} complete".format(self.epoch)) 
 		self.remove_old_models()
 		self.save_model()
 
 	def remove_old_models(self):
-		for old_model_path in sorted(glob.glob(os.path.join(self.embedding_directory, "*.csv")))[:-2*self.history]:
+		for old_model_path in sorted(glob.glob(os.path.join(self.embedding_directory, "*")))[:-3*self.history]:
 			print ("removing model: {}".format(old_model_path))
 			os.remove(old_model_path)
 
 	def save_model(self):
-		embedding_filename = os.path.join(self.embedding_directory, "{:05d}_embedding.csv".format(self.epoch))
+
+		weights_filename = os.path.join(self.embedding_directory,
+			"{:05d}_model.h5".format(self.epoch))
+		self.model.save_weights(weights_filename)
+		print ("saving weights to", weights_filename)
+
+		embedding_filename = os.path.join(self.embedding_directory, 
+			"{:05d}_embedding.csv".format(self.epoch))
 		embedding = self.model.get_weights()[0]
-		assert embedding.shape[1] == 11
+		# assert embedding.shape[1] == 11
 		assert not np.any(np.isnan(embedding))
 		assert not np.any(np.isinf(embedding))
 		assert (embedding[:,-1] > 0).all(), embedding[:,-1]
-		assert np.allclose(minkowski_dot(embedding, embedding), -1), minkowski_dot(embedding, embedding)
-		# print (embedding[:5,-5:])
-		# print ("min t:", embedding[:,-1].min(), "max t:", embedding[:,-1].max())
-		print ("saving current embedding to {}".format(embedding_filename))
+		assert np.allclose(minkowski_dot(embedding, embedding), -1)
 
 		# u = np.expand_dims(embedding, 1)
 		# v = np.expand_dims(embedding, 0)
@@ -73,19 +76,26 @@ class Checkpointer(Callback):
 
 		embedding = hyperboloid_to_poincare_ball(embedding)
 		norm = np.linalg.norm(embedding, axis=-1)
-		print ("min norm", norm.min(), "max_norm", norm.max())
-
+		print ("norm min", norm.min())
+		print ("norm max", norm.max(),)
+		print ("norm mean", norm.mean())
+		print ("norm std", norm.std())
+		print ("saving current embedding to {}".format(embedding_filename))
+		print ()
 
 		variance_filename = os.path.join(self.embedding_directory, "{:05d}_variance.csv".format(self.epoch))
 		variance = self.model.get_weights()[1]
-		assert variance.shape[1] == 10
+		# assert variance.shape[1] == 10
 
-		variance_ = elu(variance, alpha=0.9) + 1
+		variance = elu(variance) + 1
 
 		# print (variance_[:5][:,:5])
-		print ("variance min:", variance_.min(), "variance max:", variance_.max())
-
-		# print ("saving current variance to {}".format(variance_filename))
-
+		print ("variance min", variance.min())
+		print ("variance max", variance.max())
+		print ("variance mean", variance.mean())
+		print ("variance std", variance.std())
+		
+		print ("saving current variance to {}".format(variance_filename))
 		variance_df = pd.DataFrame(variance, index=self.nodes)
 		variance_df.to_csv(variance_filename)
+		print()

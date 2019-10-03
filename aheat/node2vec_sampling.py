@@ -46,6 +46,7 @@ class Graph():
 		jump = False
 		preprocessed_edges = alias_edges is not None
 
+
 		walk = [start_node]
 
 		while len(walk) < walk_length:
@@ -63,12 +64,17 @@ class Graph():
 				walk.append(next_)
 				jump = True
 
-			elif len(cur_nbrs) == 0 or np.random.rand() < 0.:
+			elif len(cur_nbrs) == 0:
 				break
-				# walk.append(start_node)
 			else:
-				if len(walk) == 1 or jump or not preprocessed_edges:
+
+				# jump back
+				if len(walk) > 1 and np.random.rand() < self.alpha:
+					walk.append(walk[-2])
+
+				elif len(walk) == 1 or jump or not preprocessed_edges:
 					walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
+				
 				else:
 					prev = walk[-2]
 					next_ = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0], 

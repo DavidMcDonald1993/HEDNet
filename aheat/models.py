@@ -12,16 +12,16 @@ def build_hyperboloid_asym_model(num_nodes,
 	context_size,
 	num_negative_samples, 
 	lr=1e-1, ):
-	x = Input((1 + context_size + num_negative_samples, ),
+	x = Input((1 + 1 + 0, ),
 		dtype=tf.int64)
-	mask = Input((context_size + num_negative_samples, ),
+	weights = Input(( 1, ),
 		dtype=K.floatx())
 
 	hyperboloid_embedding = HyperboloidGaussianEmbeddingLayer(num_nodes, embedding_dim)(x)
 
-	hyperboloid_embedding = Concatenate()([hyperboloid_embedding, mask])
+	hyperboloid_embedding = Concatenate()([hyperboloid_embedding, weights])
 
-	model = Model([x, mask], hyperboloid_embedding)
+	model = Model([x, weights], hyperboloid_embedding)
 
 	optimizer = ExponentialMappingOptimizer(lr=lr,)
 	# optimizer = MyAdamOptimizer()

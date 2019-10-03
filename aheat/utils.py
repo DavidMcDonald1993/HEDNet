@@ -218,32 +218,64 @@ def determine_positive_and_negative_samples(graph, features, args):
 		negative_samples = np.ones((N, N), )
 		np.fill_diagonal(negative_samples, 0)
 
-		# positive_samples = [(u, v) for u, v in graph.edges() if u != v]
+		# positive_samples = [
+		# 	(u, v) for u, v in graph.edges() 
+		# 	if u != v]
+
 		positive_samples = {n: {k: set() 
 			for k in range(args.context_size)}
 			for n in graph}
 
 		for i in range(args.context_size):
+			print ("determining", i+1, "hop neighbours")
 			for n in graph.nodes():
 				if i == 0:
 					s = set(graph.neighbors(n))
 				else:
-					s = set().union(*(positive_samples[u][0] for u in positive_samples[n][i-1])) -\
-						set().union(*(positive_samples[n][j] for j in range(i)))
+					s = set().union(*(positive_samples[u][0] for u in positive_samples[n][i-1])) \
+						- set().union(*(positive_samples[n][j] for j in range(i)))
 
 				# s =  s .union( {n} )
 				s -= {n}
 
-				s = list(s) if len(s) > 0 else [n]#[np.random.choice(list(set(graph) - {n}))]
-				# assert n not in s or len(s) == 1
+				s = (list(s) if len(s) > 0 
+					# else [n] if i == 0
+					else [])
+				assert n not in s #or len(s) == 1
 				positive_samples[n][i] = s 
 				negative_samples[n, s] = 0
+		print ()
 
-		# if not args.no_walks:
+		# sps = nx.floyd_warshall_numpy(graph, 
+		# 	nodelist=sorted(graph))
+
+		# np.fill_diagonal(sps, np.inf)
+
+		# U, V = np.where(sps <= args.context_size)
+
+		# print (len(set(U)), len(set(V)))
+		# print (len(set(U).union(set(V))))
+		# raise SystemExit
+
+		# for i in range(args.context_size):
+
+		# 	U, V = np.where(sps==i+1)
+
+		# 	for u, v in zip(U, V):
+		# 		assert v in positive_samples[u][i], (u, v, i+1, sps[u, v], positive_samples[u][i])
+
+		# print ("pass")
+		# raise SystemExit
+
+		# return positive_samples, None
+
+		########################
+
+		if not args.no_walks:
 			
-		# 	print ("determining positive and negative samples using random walks")
+			print ("determining positive and negative samples using random walks")
 
-		# 	walks = perform_walks(graph, features, args)
+			walks = perform_walks(graph, features, args)
 			
 		# print ("computing sps")
 		# import os
@@ -282,34 +314,34 @@ def determine_positive_and_negative_samples(graph, features, args):
 
 		# 	# dists = []
 
-		# 	for num_walk, walk in enumerate(walks):
+			for num_walk, walk in enumerate(walks):
 
-		# 		# u = walk[0]
-		# 		# for v in filter(lambda x: x != u, walk[1:]):
-		# 				# counts[u] += 1	
-		# 				# counts[v] += 1
+				# u = walk[0]
+				# for v in filter(lambda x: x != u, walk[1:]):
+					# counts[u] += 1	
+					# counts[v] += 1
 
-		# 		for i in range(len(walk)):
-		# 			u = walk[i]
-		# 			for j in range(args.context_size):
+				for i in range(len(walk)):
+					u = walk[i]
+					for j in range(args.context_size):
 
-		# 				if i+j+1 >= len(walk):
-		# 					break
-		# 				v = walk[i+j+1]
+						if i+j+1 >= len(walk):
+							break
+						v = walk[i+j+1]
 
-		# 				if u == v:
-		# 					continue
+						if u == v:
+							continue
 
-		# 				positive_samples[u][j].add(v)
-		# 				negative_samples[u, v] = 0
-		# 				# if j == 0:
-		# 				# positive_samples.append((u, v))
-		# 				# negative_samples[u, v] = 0
-		# 				# else:
-		# 					# negative_samples[u, v] = 1
+						# positive_samples[u][j].add(v)
+						# negative_samples[u, v] = 0
+						# if j == 0:
+						positive_samples.append((u, v))
+						negative_samples[u, v] = 0
+						# else:
+							# negative_samples[u, v] = 1
 
-		# 		if num_walk % 1000 == 0:  
-		# 			print ("processed walk {:04d}/{}".format(num_walk, len(walks)))
+				if num_walk % 1000 == 0:  
+					print ("processed walk {:04d}/{}".format(num_walk, len(walks)))
 		# negative_samples = np.isinf(sps)
 
 		print ("DETERMINED POSITIVE AND NEGATIVE SAMPLES")
@@ -359,39 +391,6 @@ def determine_positive_and_negative_samples(graph, features, args):
 		# 	counts[u] += 1
 		# 	counts[v] += 1
 
-		# print("min:", counts.min(), "max:", counts.max(), 
-		# 	"mean", counts.mean(), "std", counts.std())
-		
-		# pair_counts = {}
-		# for pair in positive_samples:
-		# 	if pair not in pair_counts:
-		# 		pair_counts.update({pair: 0})
-		# 	pair_counts[pair] += 1
-
-		# pair_counts = np.array(list(pair_counts.values()))
-		# print("min:", pair_counts.min(), "max:", pair_counts.max(), 
-		# 	"mean", pair_counts.mean(), "std", pair_counts.std())
-
-		# print (np.mean(dists))
-		
-		# raise SystemError
-
-		# x, = np.where(counts == counts.min())
-		# print (x)
-
-		# print ([graph.in_degree(n) for n in x])
-		# print ([graph.out_degree(n) for n in x])
-
-		# for u, v in positive_samples:
-		# 	if u in x:
-		# 		print (u, v)
-
-
-		# import matplotlib.pyplot as plt
-		# plt.hist(counts)
-		# plt.show()
-		# raise SystemExit
-
 		counts = counts ** 0.75
 		counts = np.ones_like(counts)
 		probs = counts[None, :] 
@@ -409,7 +408,7 @@ def determine_positive_and_negative_samples(graph, features, args):
 
 		assert not np.allclose(negative_samples, negative_samples.T), "symmetric network?"
 
-		return positive_samples,  probs
+		return positive_samples, probs
 
 	def select_negative_samples(positive_samples, probs, num_negative_samples):
 
@@ -474,8 +473,8 @@ def perform_walks(graph, features, args):
 
 		feature_sim = make_feature_sim(features)
 
-		if args.alpha > 0:
-			assert features is not None
+		# if args.alpha > 0:
+		# 	assert features is not None
 
 		node2vec_graph = Graph(graph=graph, 
 			is_directed=True,

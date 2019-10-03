@@ -111,7 +111,35 @@ def parallel_transport(p, q, x):
 	
 # 	return logs - log_det_proj
 
-def kullback_leibler_divergence(mus, sigmas):
+def kullback_leibler_divergence_euclidean(mus, sigmas):
+
+	dim = mus.shape[1] - 1
+
+	# project to tangent space
+	source_mus = np.expand_dims(mus, axis=1)
+	target_mus = np.expand_dims(mus, axis=0)
+
+	source_sigmas = np.expand_dims(sigmas, axis=1)
+	target_sigmas = np.expand_dims(sigmas, axis=0)
+
+	x_minus_mu = target_mus - source_mus
+
+	trace = np.sum(target_sigmas / \
+		source_sigmas, 
+		axis=-1, keepdims=True)
+
+	uu = np.sum(x_minus_mu ** 2 / \
+		source_sigmas, 
+		axis=-1, keepdims=True) # assume sigma is diagonal
+
+	log_det = np.sum(np.log(target_sigmas), 
+		axis=-1, keepdims=True) - \
+		np.sum(np.log(source_sigmas), 
+		axis=-1, keepdims=True)
+
+	return np.squeeze(0.5 * (trace + uu - dim - log_det), axis=-1)
+
+def kullback_leibler_divergence_hyperboloid(mus, sigmas):
 
 	dim = mus.shape[1] - 1
 
@@ -134,8 +162,6 @@ def kullback_leibler_divergence(mus, sigmas):
 		mu_zero, 
 		to_tangent_space)
 
-	# sigmas = np.maximum(sigmas, 1e-15)
-
 	source_sigmas = np.expand_dims(sigmas, axis=1)
 	target_sigmas = np.expand_dims(sigmas, axis=0)
 
@@ -143,20 +169,24 @@ def kullback_leibler_divergence(mus, sigmas):
 	# ignore zero t coordinate
 	x_minus_mu = to_tangent_space_mu_zero[...,:-1]
 
-	trace = np.sum(target_sigmas / \
-		source_sigmas, 
+	sigma_ratio = target_sigmas / source_sigmas
+
+	trace_fac = np.sum(sigma_ratio,
 		axis=-1, keepdims=True)
 
-	uu = np.sum(x_minus_mu ** 2 / \
-		source_sigmas, 
-		axis=-1, keepdims=True) # assume sigma is diagonal
+	mu_sq_diff = np.sum(x_minus_mu ** 2 / \
+		source_sigmas,
+		axis=-1, keepdims=True) # assume sigma inv is diagonal
 
-	log_det = np.sum(np.log(target_sigmas), 
-		axis=-1, keepdims=True) - \
-		np.sum(np.log(source_sigmas), 
-		axis=-1, keepdims=True)
+	log_det = np.sum(np.log(sigma_ratio), axis=-1, keepdims=True)
 
-	return 0.5 * (trace + uu - dim - log_det) 
+	return np.squeeze(
+		0.5 * (trace_fac + mu_sq_diff - dim - log_det), 
+		axis=-1
+	)
+
+def euclidean_distance(X):
+	return euclidean_distances(X)
 
 def evaluate_precision_at_k(scores, edgelist, non_edgelist, k=10):
 	edgelist_dict = {}
@@ -293,7 +323,6 @@ def save_test_results(filename, seed, data, ):
 def threadsafe_save_test_results(lock_filename, filename, seed, data):
 	threadsafe_fn(lock_filename, save_test_results, filename=filename, seed=seed, data=data)
 
-
 def parse_args():
 
 	parser = argparse.ArgumentParser(description='Load Hyperboloid Embeddings and evaluate reconstruction')
@@ -314,8 +343,9 @@ def parse_args():
 		help="path to save results.")
 
 	parser.add_argument("--seed", type=int, default=0)
-
-	parser.add_argument("--poincare", action="store_true")
+	
+	parser.add_argument("--dist_fn", dest="dist_fn", type=str,
+		choices=["poincare", "hyperboloid", "euclidean", "kle", "klh"])
 
 	return parser.parse_args()
 
@@ -336,17 +366,31 @@ def main():
 	print ("Loaded dataset")
 	print ()
 
+	dist_fn = args.dist_fn
+
+	print ("distance function is", dist_fn)
+
 	test_edges = np.array(list(graph.edges()))
 	test_non_edges = np.array(list(nx.non_edges(graph)))
 
+	num_edges = len(test_edges)
+	num_non_edges = len(test_non_edges)
+
 	np.random.seed(args.seed)
-	idx = np.random.permutation(np.arange(len(test_non_edges), dtype=int))[:len(test_edges)]
+	idx = np.random.permutation(num_non_edges, )[:num_edges]
 	test_non_edges = test_non_edges[idx]
 
-	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
+
+	if  dist_fn in ["kle", "klh"]:
+
+		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
-	embedding_filename, variance_filename = files[-2:]
-	# embedding_filename = files[-1]
+		embedding_filename, variance_filename = files[-2:]
+	else:
+
+		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
+		"*_embedding.csv")))
+		embedding_filename = files[-1]
 
 	print ("loading embedding from", embedding_filename)
 	embedding_df = load_embedding(embedding_filename)
@@ -355,71 +399,53 @@ def main():
 	# row 1 is embedding for node 1 etc...
 	embedding = embedding_df.values
 
-	dists = hyperbolic_distance_hyperboloid(embedding,
-		embedding)
+	if  dist_fn in ["kle", "klh"]:
+		print ("loading variance from", variance_filename)
+		variance_df = load_embedding(variance_filename)
+		variance_df = variance_df.reindex(sorted(variance_df.index))
+		variance = variance_df.values
+		# if dist_fn == "klh":
+		# 	variance = elu(variance, alpha=1.) + 1
 
-	print ("DISTANCE")
-	evaluate_rank_and_MAP(-dists, 
-		test_edges, test_non_edges)
-	for k in (1, 3, 5, 10):
-		print ("PRECISION AT", k)
-		print (evaluate_precision_at_k(-dists, 
-			test_edges, test_non_edges, k=k))
-	print ("MAP")
-	print (evaluate_mean_average_precision(-dists, 
-		test_edges, test_non_edges))
-
-	print ("loading variance from", variance_filename)
-	variance_df = pd.read_csv(variance_filename, index_col=0)
-	variance_df = variance_df.reindex(sorted(variance_df.index))
-	variance = variance_df.values
-
-	variance = elu(variance, alpha=0.9) + 1
-
-	scores = -kullback_leibler_divergence(embedding, variance)
-	scores = np.squeeze(scores, axis=-1)
-
-	print ()
-	print ("DIRECTION")
-	print (np.mean([scores[u, v] > scores[v, u] for u, v in graph.edges() if (v, u) not in graph.edges()]))
-	print()
-	# (mean_rank_recon, ap_recon, 
-	# roc_recon) = evaluate_rank_and_MAP(scores, 
-	# 	[(u, v) for u, v in graph.edges if (v, u) not in graph.edges], 
-	# 	[(v, u) for u, v in graph.edges if (v, u) not in graph.edges])
-	# print ()
-
-	# for u, v in np.random.permutation(test_edges)[:10]:
-	# 	print (u, v, scores[u, v])
-	# print()
-	# print (np.mean([scores[u, v] for u, v in test_edges]))
-	# print ()
-
-	# for u, v in np.random.permutation(test_non_edges)[:10]:
-	# 	print (u, v, scores[u, v])
-	# print ()
-	# print (np.mean([scores[u, v] for u, v in test_non_edges]))
-	# print ()
-
-	print ("KULLBACK LEIBLER")
-	(mean_rank_recon, ap_recon, 
-	roc_recon) = evaluate_rank_and_MAP(scores, 
-		test_edges, test_non_edges)
-	for k in (1, 3, 5, 10):
-		print ("PRECISION AT", k)
-		print (evaluate_precision_at_k(scores,  
-			test_edges, test_non_edges, k=k))
-	print ("MAP")
-	print (evaluate_mean_average_precision(scores, 
-		test_edges, test_non_edges))
-
-	raise SystemExit
+	if dist_fn == "poincare":
+		dists = hyperbolic_distance_poincare(embedding)
+	elif dist_fn == "hyperboloid":
+		dists = hyperbolic_distance_hyperboloid(embedding, embedding)
+	elif dist_fn == "klh":
+		dists = kullback_leibler_divergence_hyperboloid(embedding, variance)
+	elif dist_fn == "kle":
+		dists = kullback_leibler_divergence_euclidean(embedding, variance)
+	else: 
+		dists = euclidean_distance(embedding)
 
 	test_results = dict()
+
+	(mean_rank_recon, ap_recon, 
+	roc_recon) = evaluate_rank_and_MAP(-dists, 
+		test_edges, test_non_edges)
 
 	test_results.update({"mean_rank_recon": mean_rank_recon, 
 		"ap_recon": ap_recon,
 		"roc_recon": roc_recon})
+
+	precisions_at_k = [(k, 
+		evaluate_precision_at_k(-dists,  
+			test_edges, test_non_edges, k=k))
+			for k in (1, 3, 5, 10)]
+	for k, pk in precisions_at_k:
+		print ("precision at", k, pk)
+	test_results.update({"p@{}".format(k): pk
+		for k, pk in precisions_at_k})
+
+	map_recon = evaluate_mean_average_precision(-dists, 
+		test_edges, test_non_edges)
+	print ("map recon", map_recon)
+	test_results.update({"map_recon": map_recon})
+
+	raise SystemExit
+
+
+
 
 	test_results_dir = args.test_results_dir
 	if not os.path.exists(test_results_dir):

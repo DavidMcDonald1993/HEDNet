@@ -14,7 +14,7 @@ def write_edgelist_to_file(edgelist, file):
 		for u, v in edgelist:
 			f.write("{}\t{}\n".format(u, v))
 
-def split_edges(edges, non_edges, seed, val_split=0.00, test_split=0.15, neg_mul=1):
+def split_edges(edges, non_edges, seed, val_split=0.05, test_split=0.10, neg_mul=1):
 	
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
@@ -81,10 +81,10 @@ def main():
 	edges = list(graph.edges())
 	non_edges = list(nx.non_edges(graph))
 
-	_, (val_edges, val_non_edges), (test_edges, test_non_edges) = split_edges(edges, non_edges, seed)
+	_, (val_edges, val_non_edges), (test_edges, test_non_edges) = split_edges(edges, non_edges, seed, val_split=0)
 
-	for edge in test_edges:
-		assert edge in graph.edges() or edge[::-1] in graph.edges()
+	print ("number of val edges", len(val_edges), "number of val non edges", len(val_edges))
+	print ("number of test edges", len(test_edges), "number of test non edges", len(test_edges))
 
 	graph.remove_edges_from(val_edges + test_edges)
 	graph.add_edges_from(((u, u, {"weight": 0}) for u in graph.nodes())) # ensure that every node appears at least once by adding self loops

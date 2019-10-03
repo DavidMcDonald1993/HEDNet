@@ -2,32 +2,16 @@ from __future__ import print_function
 
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-import h5py
-import multiprocessing 
-import re
 import argparse
-import json
-import sys
 import random
 import numpy as np
-import networkx as nx
 import pandas as pd
 import glob
 
-from scipy.sparse import identity
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
-
-from keras.layers import Input, Layer, Dense, Embedding
-from keras.models import Model
 from keras import backend as K
-from keras.callbacks import Callback, TerminateOnNaN, TensorBoard, ModelCheckpoint, CSVLogger, EarlyStopping
+from keras.callbacks import TerminateOnNaN, EarlyStopping
 
 import tensorflow as tf
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import math_ops, control_flow_ops
-from tensorflow.python.training import optimizer
 
 from aheat.utils import build_training_samples, hyperboloid_to_poincare_ball, load_data, load_embedding
 from aheat.utils import perform_walks, determine_positive_and_negative_samples
@@ -35,10 +19,11 @@ from aheat.generators import TrainingDataGenerator
 from aheat.visualise import draw_graph, plot_degree_dist
 from aheat.callbacks import Checkpointer
 from aheat.models import build_hyperboloid_asym_model
-
+from aheat.optimizers import ExponentialMappingOptimizer
+from aheat.losses import asym_hyperbolic_loss
 
 K.set_floatx("float64")
-K.set_epsilon(np.float64(1e-15))
+# K.set_epsilon(np.float64(1e-15))
 
 np.set_printoptions(suppress=True)
 
@@ -59,16 +44,20 @@ K.tensorflow_backend.set_session(tf.Session(config=config))
 
 def load_weights(model, args):
 
-	previous_models = sorted(glob.glob(os.path.join(args.embedding_path, "*.csv")))
+	previous_models = sorted(glob.glob(os.path.join(args.embedding_path, "*.h5")))
 	if len(previous_models) > 0:
-		embedding_file, variance_file = previous_models[-2:]
-		initial_epoch = int(embedding_file.split("/")[-1].split("_")[0])
-		print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(embedding_file, initial_epoch))
-		embedding_df = load_embedding(embedding_file)
-		embedding = embedding_df.reindex(sorted(embedding_df.index)).values
-		variance_df = pd.read_csv(variance_file, index_col=0)
-		variance = variance_df.reindex(sorted(variance_df.index)).values
-		model.layers[1].set_weights([embedding, variance])
+		weight_file = previous_models[-1]
+		initial_epoch = int(weight_file.split("/")[-1].split("_")[0])
+		print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(weight_file, initial_epoch))
+		model.load_weights(weight_file)
+		# embedding_file, variance_file = previous_models[-2:]
+		# initial_epoch = int(embedding_file.split("/")[-1].split("_")[0])
+		# print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(embedding_file, initial_epoch))
+		# embedding_df = load_embedding(embedding_file)
+		# embedding = embedding_df.reindex(sorted(embedding_df.index)).values
+		# variance_df = pd.read_csv(variance_file, index_col=0)
+		# variance = variance_df.reindex(sorted(variance_df.index)).values
+		# model.layers[1].set_weights([embedding, variance])
 	else:
 		print ("no previous model found in {}".format(args.embedding_path))
 		initial_epoch = 0
@@ -95,8 +84,8 @@ def parse_args():
 
 	parser.add_argument("-e", "--num_epochs", dest="num_epochs", type=int, default=50,
 		help="The number of epochs to train for (default is 50).")
-	parser.add_argument("-b", "--batch_size", dest="batch_size", type=int, default=50, 
-		help="Batch size for training (default is 50).")
+	parser.add_argument("-b", "--batch_size", dest="batch_size", type=int, default=512, 
+		help="Batch size for training (default is 512).")
 	parser.add_argument("--nneg", dest="num_negative_samples", type=int, default=10, 
 		help="Number of negative samples for training (default is 10).")
 	parser.add_argument("--context-size", dest="context_size", type=int, default=3,
@@ -195,11 +184,6 @@ def main():
 		node_labels = None
 	print ("Loaded dataset")
 
-	# graph = max(nx.strongly_connected_component_subgraphs(graph), key=len)
-	# graph = nx.convert_node_labels_to_integers(graph)
-	# print (len(graph))
-	# raise SystemExit
-
 	if False:
 		plot_degree_dist(graph, "degree distribution")
 
@@ -217,6 +201,11 @@ def main():
 		lr=args.lr)
 	model, initial_epoch = load_weights(model, args)
 
+	# optimizer = ExponentialMappingOptimizer(lr=args.lr)
+	# model.compile(optimizer=optimizer, 
+	# 	loss=asym_hyperbolic_loss,
+	# 	target_tensors=[ tf.placeholder(dtype=tf.int64), ])
+
 	model.summary()
 
 	callbacks = [
@@ -233,33 +222,22 @@ def main():
 	positive_samples, negative_samples, probs = \
 			determine_positive_and_negative_samples(graph, features, args)
 
-	# assert probs is None
+	# edges = []
+	# with open(os.path.join("edgelists","cora_ml",
+	# 	"seed=000", 
+	#   "removed_edges", "test_non_edges.tsv"), "r") as f:
+	# 	for line in (l.rstrip() for l in f.readlines()):
+	# 		edge = tuple(int(i) for i in line.split("\t"))
+	# 		edges.append(edge)
 
-	# counts_positive_samples = np.zeros(len(graph))
-	# counts_negative_samples = np.zeros(len(graph))
-
-	# positive_samples = positive_samples.tolist()
-	# for u, v in graph.edges:
-	# 	assert [u, v] in positive_samples, [u, v]
-
-	# for (u, v), neg_samples in zip(positive_samples, negative_samples):
-	# 	# assert (u, v) in graph.edges()
-	# 	counts_positive_samples[u] += 1
-	# 	# counts_positive_samples[v] += 1
-
-	# 	for v_ in neg_samples:
-	# 		counts_negative_samples[v_] +=  1
-	# 		# assert (u, v_) not in graph.edges
-
-	# print (counts_positive_samples.min(), counts_positive_samples.max())
-	# print (counts_negative_samples.min(), counts_negative_samples.max())
-
-	# import matplotlib.pyplot as plt
-	# plt.scatter(np.arange(len(graph)), counts_positive_samples)
-	# plt.show()
-
-	# plt.scatter(np.arange(len(graph)), counts_negative_samples)
-	# plt.show()
+	# counts = 0
+	# for u, v in edges:
+	# 	samples = positive_samples[u]
+	# 	for i in range(args.context_size):
+	# 		if v in samples[i]:
+	# 			counts += 1
+	
+	# print (counts / len(edges))
 
 	# raise SystemExit
 

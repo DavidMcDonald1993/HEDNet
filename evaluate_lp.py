@@ -108,7 +108,7 @@ def parallel_transport(p, q, x):
 	
 # 	return logs - log_det_proj
 
-def kullback_leibler_divergence(mus, sigmas):
+def kullback_leibler_divergence_euclidean(mus, sigmas):
 
 	dim = mus.shape[1] - 1
 
@@ -116,25 +116,10 @@ def kullback_leibler_divergence(mus, sigmas):
 	source_mus = np.expand_dims(mus, axis=1)
 	target_mus = np.expand_dims(mus, axis=0)
 
-	to_tangent_space = logarithmic_map(source_mus, 
-		target_mus)
-
-	# parallel transport to mu zero
-	mu_zero = np.zeros((1, 1, dim + 1))
-	mu_zero[..., -1] = 1
-	
-	to_tangent_space_mu_zero = parallel_transport(source_mus,
-		mu_zero, 
-		to_tangent_space)
-
-	# sigmas = np.maximum(sigmas, 1e-15)
-
 	source_sigmas = np.expand_dims(sigmas, axis=1)
 	target_sigmas = np.expand_dims(sigmas, axis=0)
 
-	# mu is zero vector
-	# ignore zero t coordinate
-	x_minus_mu = to_tangent_space_mu_zero[...,:-1]
+	x_minus_mu = target_mus - source_mus
 
 	trace = np.sum(target_sigmas / \
 		source_sigmas, 
@@ -149,7 +134,78 @@ def kullback_leibler_divergence(mus, sigmas):
 		np.sum(np.log(source_sigmas), 
 		axis=-1, keepdims=True)
 
-	return 0.5 * (trace + uu - dim - log_det) 
+	return np.squeeze(0.5 * (trace + uu - dim - log_det), axis=-1)
+
+
+def kullback_leibler_divergence_hyperboloid(mus, sigmas):
+
+	dim = mus.shape[1] - 1
+
+	# project to tangent space
+	source_mus = np.expand_dims(mus, axis=1)
+	target_mus = np.expand_dims(mus, axis=0)
+
+	to_tangent_space = logarithmic_map(source_mus, 
+		target_mus)
+
+	for x, y in zip(source_mus, to_tangent_space):
+		assert np.allclose(minkowski_dot(x, y), 0)
+
+	# parallel transport to mu zero
+	mu_zero = np.zeros((1, 1, dim + 1))
+	mu_zero[..., -1] = 1
+	
+	to_tangent_space_mu_zero = parallel_transport(source_mus,
+		mu_zero, 
+		to_tangent_space)
+
+	assert np.allclose(to_tangent_space_mu_zero[..., -1], 0)
+
+	# mu is zero vector
+	# ignore zero t coordinate
+	mus = to_tangent_space_mu_zero[...,:-1]
+
+	# dists = hyperbolic_distance_hyperboloid(mus, 
+	# 	mus)
+	# print (dists.shape)
+	# raise SystemExit
+
+
+	# sigmas = np.maximum(sigmas, 1e-15)
+
+	source_sigmas = np.expand_dims(sigmas, axis=1)
+	target_sigmas = np.expand_dims(sigmas, axis=0)
+
+	sigma_ratio = target_sigmas / source_sigmas
+	sigma_ratio = np.maximum(sigma_ratio, 1e-15)
+
+	trace_fac = np.sum(sigma_ratio,
+		axis=-1, keepdims=True)
+
+	mu_sq_diff = np.sum(mus ** 2 / \
+		source_sigmas,
+		axis=-1, keepdims=True) # assume sigma inv is diagonal
+
+	log_det = np.sum(np.log(sigma_ratio),
+		axis=-1, keepdims=True)
+
+	return np.squeeze(0.5 * \
+		(trace_fac + mu_sq_diff - dim - log_det))
+
+	# trace = np.sum(target_sigmas / \
+	# 	source_sigmas, 
+	# 	axis=-1, keepdims=True)
+
+	# uu = np.sum(x_minus_mu ** 2 / \
+	# 	source_sigmas, 
+	# 	axis=-1, keepdims=True) # assume sigma is diagonal
+
+	# log_det = np.sum(np.log(target_sigmas), 
+	# 	axis=-1, keepdims=True) - \
+	# 	np.sum(np.log(source_sigmas), 
+	# 	axis=-1, keepdims=True)
+
+	# return np.squeeze(0.5 * (trace + uu - dim - log_det), axis=-1)
 
 def euclidean_distance(X):
 	return euclidean_distances(X)
@@ -203,6 +259,10 @@ def evaluate_rank_and_MAP(scores,
 def evaluate_mean_average_precision(scores, 
 	edgelist, 
 	non_edgelist):
+
+	import random
+	random.seed(0)
+
 	edgelist_dict = {}
 	for u, v in edgelist:
 		if u not in edgelist_dict:
@@ -216,11 +276,15 @@ def evaluate_mean_average_precision(scores,
 		non_edgelist_dict[u].append(v)
 
 	precisions = []
-	for u in edgelist_dict:
+	for u in set(edgelist_dict).\
+		intersection(set(non_edgelist_dict)):
+		
 		true_neighbours = edgelist_dict[u]
 		non_neighbours = non_edgelist_dict[u]
+		# print (len(true_neighbours), len(non_neighbours))
+		non_neighbours = random.sample(non_neighbours, len(true_neighbours))
 		labels = np.append(np.ones_like(true_neighbours), 
-		np.zeros_like(non_neighbours))
+			np.zeros_like(non_neighbours))
 		scores_ = scores[u, true_neighbours+non_neighbours]
 		s = average_precision_score(labels, scores_)
 		precisions.append(s)
@@ -304,7 +368,7 @@ def parse_args():
 	parser.add_argument("--seed", type=int, default=0)
 
 	parser.add_argument("--dist_fn", dest="dist_fn", type=str,
-		choices=["poincare", "hyperboloid", "euclidean", "kullback_leibler"])
+		choices=["poincare", "hyperboloid", "euclidean", "kle", "klh"])
 
 	return parser.parse_args()
 
@@ -318,7 +382,6 @@ def main():
 
 	args = parse_args()
 
-
 	args.directed = True
 
 	graph, _, _ = load_data(args)
@@ -327,7 +390,9 @@ def main():
 	print ()
 
 	dist_fn = args.dist_fn
-	assert dist_fn == "kullback_leibler"
+	# assert dist_fn in ["kle", "klh"]
+
+	print ("distance function is", dist_fn)
 
 	seed= args.seed
 	removed_edges_dir = os.path.join(args.output, "seed={:03d}".format(seed), "removed_edges")
@@ -341,34 +406,36 @@ def main():
 	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
 
-	if dist_fn == "kullback_leibler":
+	if  dist_fn in ["kle", "klh"]:
 		embedding_filename, variance_filename = files[-2:]
 	else:
 		embedding_filename = files[-1]
 
 	print ("loading embedding from", embedding_filename)
 	embedding_df = load_embedding(embedding_filename)
-	embedding_df = embedding_df.reindex(sorted(embedding_df.index))
+	
 	# row 0 is embedding for node 0
 	# row 1 is embedding for node 1 etc...
+	embedding_df = embedding_df.reindex(sorted(embedding_df.index))
 	embedding = embedding_df.values
 
-	if dist_fn == "kullback_leibler":
+	if  dist_fn in ["kle", "klh"]:
 		print ("loading variance from", variance_filename)
 		variance_df = load_embedding(variance_filename)
 		variance_df = variance_df.reindex(sorted(variance_df.index))
-		# row 0 is embedding for node 0
-		# row 1 is embedding for node 1 etc...
 		variance = variance_df.values
-		variance = elu(variance, alpha=.9) + 1
+		# if dist_fn == "klh":
+		# 	variance = elu(variance, alpha=1.) + 1
+		# 	print (variance.min(), variance.max())
 
 	if dist_fn == "poincare":
 		dists = hyperbolic_distance_poincare(embedding)
 	elif dist_fn == "hyperboloid":
 		dists = hyperbolic_distance_hyperboloid(embedding, embedding)
-	elif dist_fn == "kullback_leibler":
-		dists = kullback_leibler_divergence(embedding, variance)
-		dists = np.squeeze(dists, -1)
+	elif dist_fn == "klh":
+		dists = kullback_leibler_divergence_hyperboloid(embedding, variance)
+	elif dist_fn == "kle":
+		dists = kullback_leibler_divergence_euclidean(embedding, variance)
 	else: 
 		dists = euclidean_distance(embedding)
 
@@ -379,14 +446,16 @@ def main():
 
 	(mean_rank_lp, ap_lp, 
 	roc_lp) = evaluate_rank_and_MAP(-dists, 
-	test_edges, test_non_edges)
+	test_edges, 
+	test_non_edges)
 
 	test_results.update({"mean_rank_lp": mean_rank_lp, 
 		"ap_lp": ap_lp,
 		"roc_lp": roc_lp})
 
 	map_lp = evaluate_mean_average_precision(-dists, 
-		test_edges, nx.non_edges(graph))
+		test_edges, 
+		nx.non_edges(graph))
 
 	print ("MAP lp", map_lp)
 
