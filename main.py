@@ -13,14 +13,14 @@ from keras.callbacks import TerminateOnNaN, EarlyStopping
 
 import tensorflow as tf
 
-from aheat.utils import build_training_samples, hyperboloid_to_poincare_ball, load_data, load_embedding
-from aheat.utils import perform_walks, determine_positive_and_negative_samples
-from aheat.generators import TrainingDataGenerator
-from aheat.visualise import draw_graph, plot_degree_dist
-from aheat.callbacks import Checkpointer
-from aheat.models import build_hyperboloid_asym_model
-from aheat.optimizers import ExponentialMappingOptimizer
-from aheat.losses import asym_hyperbolic_loss
+from hednet.utils import build_training_samples, hyperboloid_to_poincare_ball, load_data, load_embedding
+from hednet.utils import perform_walks, determine_positive_and_negative_samples
+from hednet.generators import TrainingDataGenerator
+from hednet.visualise import draw_graph, plot_degree_dist
+from hednet.callbacks import Checkpointer
+from hednet.models import build_hyperboloid_asym_model
+from hednet.optimizers import ExponentialMappingOptimizer
+from hednet.losses import asym_hyperbolic_loss
 
 K.set_floatx("float64")
 # K.set_epsilon(np.float64(1e-15))
