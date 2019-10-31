@@ -14,14 +14,33 @@ def write_edgelist_to_file(edgelist, file):
 		for u, v in edgelist:
 			f.write("{}\t{}\n".format(u, v))
 
-def split_edges(edges, non_edges, seed, val_split=0.05, test_split=0.10, neg_mul=1):
+def split_edges(nodes, 
+	edges, 
+	non_edges, 
+	seed,
+	val_split=0.05, 
+	test_split=0.10, 
+	neg_mul=1):
 	
+	assert isinstance(nodes, set)
+
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
 
 	random.seed(seed)
 	random.shuffle(edges)
 	random.shuffle(non_edges)
+
+	# ensure every node appears in edgelist
+	# edges = set(edges)
+	cover = []
+	for u, v in edges:
+		if u in nodes or v in nodes:
+			nodes -= {u, v}
+			cover.append((u, v))
+
+	edges = [edge for edge in edges
+		if edge not in cover] + cover
 
 	val_edges = edges[:num_val_edges]
 	test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
@@ -47,7 +66,8 @@ def parse_args():
 	parser.add_argument("--output", dest="output", type=str, 
 		help="path to save training and removed edges")
 
-	parser.add_argument('--directed', action="store_true", help='flag to train on directed graph')
+	parser.add_argument('--directed', 
+		action="store_true", help='flag to train on directed graph')
 
 	parser.add_argument("--seed", type=int, default=0)
 
@@ -81,7 +101,12 @@ def main():
 	edges = list(graph.edges())
 	non_edges = list(nx.non_edges(graph))
 
-	_, (val_edges, val_non_edges), (test_edges, test_non_edges) = split_edges(edges, non_edges, seed, val_split=0)
+	(_, (val_edges, val_non_edges), 
+	(test_edges, test_non_edges)) = split_edges(set(graph), 
+		edges, 
+		non_edges, 
+		seed, 
+		val_split=0)
 
 	print ("number of val edges", len(val_edges), "number of val non edges", len(val_edges))
 	print ("number of test edges", len(test_edges), "number of test non edges", len(test_edges))
