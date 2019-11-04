@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name=removeEdgesSynthetic
-#SBATCH --output=removeEdges_%A_%a.out
-#SBATCH --error=removeEdges_%A_%a.err
+#SBATCH --output=removeEdgesSynthetic_%A_%a.out
+#SBATCH --error=removeEdgesSynthetic_%A_%a.err
 #SBATCH --array=0-2999
 #SBATCH --time=05:00:00
 #SBATCH --ntasks=1
