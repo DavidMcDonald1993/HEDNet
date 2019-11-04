@@ -207,6 +207,102 @@ def create_feature_graph(features, args):
 
 def determine_positive_and_negative_samples(graph, features, args):
 
+
+	##############################################################
+	
+
+	def build_positive_samples(graph, k=3):
+		from scipy.sparse import identity
+		assert k > 0
+
+		def step(X):
+			X[X>0] = 1    
+			X[X<0] = 0
+			return X
+		
+		N = len(graph)
+		A0 = identity(N, dtype=int)
+		print ("determined 0 hop neighbours")
+		A1 = step(nx.adjacency_matrix(graph, nodelist=sorted(graph)) - A0)
+		print ("determined 1 hop neighbours")
+		positive_samples = [A0, A1]
+		for i in range(2, k+1):
+			A_k = step(step(positive_samples[-1].dot(A1)) - step(np.sum(positive_samples, axis=0)))
+			print ("determined", i, "hop neighbours")
+			positive_samples.append(A_k)
+		return positive_samples
+
+	def positive_samples_to_list(positive_samples):
+		l = []
+		for k, ps in enumerate(positive_samples):
+			if k == 0:
+				continue
+			nzx, nzy = np.nonzero(ps)
+			l.append(np.array((nzx, nzy, [k]*len(nzx))))
+		return np.concatenate(l, axis=1).T
+
+	def build_negative_samples(positive_samples):
+		
+		N = positive_samples[0].shape[0]
+		negative_samples = []
+
+		# counts = np.sum(positive_samples, axis=0).sum(axis=1).A
+		for k in range(len(positive_samples)):
+			if True or k == args.context_size:
+				# neg_samples = counts * counts.T 
+				neg_samples = np.ones((N, N)) #* np.exp(-(args.context_size+1))
+				neg_samples[
+						np.sum(positive_samples[:k+1], axis=0).nonzero()
+					] = 0
+				# neg_samples = np.zeros((N, N)) 
+				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
+				# for k_ in range(len(positive_samples)):
+				# 	if k_ <= k:
+				# 		p = 0
+				# 	else:
+				# 		p = np.exp(-k_)
+				# 	neg_samples[positive_samples[k_].nonzero()] = p
+			else:
+				neg_samples = np.zeros((N, N))
+				neg_samples[positive_samples[k+1].nonzero()] = 1
+				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
+			neg_samples = neg_samples.flatten()
+			neg_samples /= (neg_samples.sum(axis=-1, keepdims=True)+1e-15)
+			neg_samples = neg_samples.cumsum(axis=-1)
+			negative_samples.append(neg_samples)
+		return negative_samples
+
+	positive_samples = build_positive_samples(graph, k=args.context_size)
+
+	negative_samples = build_negative_samples(positive_samples)
+
+	positive_samples = positive_samples_to_list(positive_samples)
+
+
+	# N = len(graph)
+	# sps = nx.floyd_warshall_numpy(graph,
+	# 		nodelist=sorted(graph))
+	# for u, v, k in positive_samples:
+	# 	assert sps[u, v] == k+1, (u, v, k+1, sps[u, v])
+
+	# for k, ns in enumerate(negative_samples):
+	# 	idx = np.searchsorted(ns, np.random.rand(10000))
+	# 	for u, v in zip(*np.unravel_index(idx, dims=[N, N])):
+	# 		assert sps[u, v] > k+1, (u, v, sps[u,v])
+
+	print ("found {} positive sample pairs".format(len(positive_samples)))
+
+
+	
+	return positive_samples, negative_samples, None
+
+
+
+	################################################################
+
+
+
+
 	nodes = graph.nodes()
 
 	if not isinstance(nodes, set):

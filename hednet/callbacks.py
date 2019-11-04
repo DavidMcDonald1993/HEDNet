@@ -7,7 +7,7 @@ import pandas as pd
 
 from keras.callbacks import Callback
 
-from aheat.utils import hyperboloid_to_poincare_ball
+from hednet.utils import hyperboloid_to_poincare_ball
 
 def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
@@ -75,15 +75,17 @@ class Checkpointer(Callback):
 		embedding_df.to_csv(embedding_filename)
 
 		embedding = hyperboloid_to_poincare_ball(embedding)
-		norm = np.linalg.norm(embedding, axis=-1)
-		print ("norm min", norm.min())
-		print ("norm max", norm.max(),)
-		print ("norm mean", norm.mean())
-		print ("norm std", norm.std())
-		counts, bin_edges = np.histogram(norm)
-		print ("norm counts", counts)
-		print ("saving current embedding to {}".format(embedding_filename))
-		print ()
+		# norm = np.linalg.norm(embedding, axis=-1)
+		# print ("norm min", norm.min())
+		# print ("norm max", norm.max(),)
+		# print ("norm mean", norm.mean())
+		# print ("norm std", norm.std())
+		# counts, bin_edges = np.histogram(norm, 
+			# bins=np.arange(0, 1.1, .1))
+		# for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
+		# 	print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
+		# print ("saving current embedding to {}".format(embedding_filename))
+		# print ()
 
 		variance_filename = os.path.join(self.embedding_directory, "{:05d}_variance.csv".format(self.epoch))
 		variance = self.model.get_weights()[1]
@@ -91,13 +93,15 @@ class Checkpointer(Callback):
 
 		variance = elu(variance) + 1
 
-		# print (variance_[:5][:,:5])
-		print ("variance min", variance.min())
-		print ("variance max", variance.max())
-		print ("variance mean", variance.mean())
-		print ("variance std", variance.std())
-		counts, bin_edges = np.histogram(variance)
-		print ("variance counts", counts)
+		# print ("variance min", variance.min())
+		# print ("variance max", variance.max())
+		# print ("variance mean", variance.mean())
+		# print ("variance std", variance.std())
+		# counts, bin_edges = np.histogram(variance, 
+		# 	# bins=np.arange(np.ceil(variance.max()+1))
+		# 	)
+		# for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
+		# 	print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
 		
 		print ("saving current variance to {}".format(variance_filename))
 		variance_df = pd.DataFrame(variance, index=self.nodes)

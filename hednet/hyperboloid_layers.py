@@ -139,7 +139,7 @@ def logarithmic_map(p, x):
 	# raise SystemExit
 	return out
 
-def hyperboloid_initializer(shape, r_max=1e-2):
+def hyperboloid_initializer(shape, r_max=1e-3):
 
 	def poincare_ball_to_hyperboloid(X, append_t=True):
 		x = 2 * X
@@ -157,7 +157,9 @@ def hyperboloid_initializer(shape, r_max=1e-2):
 
 	# w = sphere_uniform_sample(shape, r_max=r_max)
 	w = tf.random_uniform(shape=shape, 
-		minval=-r_max, maxval=r_max, dtype=K.floatx())
+		minval=-r_max, 
+		maxval=r_max, 
+		dtype=K.floatx())
 	return poincare_ball_to_hyperboloid(w)
 
 # class HyperboloidEmbeddingLayer(Layer):
@@ -214,12 +216,11 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 		assert self.embedding.shape[1] == self.embedding_dim + 1
 		self.sigmas = self.add_weight(name='euclidean_covariance',
 			shape=(self.num_nodes, self.embedding_dim),
-			# initializer="zeros",
 			initializer=functools.partial(
 				tf.random_normal, 
 				stddev=1e-3,
 				dtype=K.floatx()),
-			regularizer=l2(1e-6),
+			regularizer=l2(1e-4),
 			trainable=True)
 		super(HyperboloidGaussianEmbeddingLayer, self).build(input_shape)
 
@@ -239,15 +240,15 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 			source_embedding,
 			target_embedding)
 		# to_tangent_space = target_embedding
-		to_tangent_space = tf.verify_tensor_all_finite(to_tangent_space, 
-			"fail in to tangent space")
+		# to_tangent_space = tf.verify_tensor_all_finite(to_tangent_space, 
+			# "fail in to tangent space")
 		to_tangent_space_mu_zero = parallel_transport(\
 			source_embedding,
 			self.mu_zero,
 			to_tangent_space)
-		to_tangent_space_mu_zero = \
-			tf.verify_tensor_all_finite(to_tangent_space_mu_zero, 
-			"fail in to tangent space mu zero")
+		# to_tangent_space_mu_zero = \
+		# 	tf.verify_tensor_all_finite(to_tangent_space_mu_zero, 
+		# 	"fail in to tangent space mu zero")
 
 		sigmas = tf.gather(self.sigmas, idx)
 
@@ -257,7 +258,7 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 			mus=to_tangent_space_mu_zero,
 			sigmas=sigmas)
 
-		kds = tf.verify_tensor_all_finite(kds, "fail in kds")
+		# kds = tf.verify_tensor_all_finite(kds, "fail in kds")
 
 		kds = K.squeeze(kds, axis=-1)
 

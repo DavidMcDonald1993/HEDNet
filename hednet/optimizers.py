@@ -33,22 +33,21 @@ def normalise_to_hyperboloid(x):
 
 def exponential_mapping( p, x ):
 
-	p = tf.verify_tensor_all_finite(p, "fail in p")
+	# p = tf.verify_tensor_all_finite(p, "fail in p")
 
 	# minkowski unit norm
 	r = minkowski_norm(x)
-	r = tf.verify_tensor_all_finite(r, "fail in r")
+	# r = tf.verify_tensor_all_finite(r, "fail in r")
 
 	x = x / K.maximum(r, K.epsilon())
 
-	x = tf.verify_tensor_all_finite(x, "fail in mink norm")
+	# x = tf.verify_tensor_all_finite(x, "fail in mink norm")
 
 	####################################################
 
 	# r = K.minimum(r, 1e-0)
 
 	# idx = (r > 1e-7)[:,0]
-
 
 	# updates = tf.cosh(r) * p + tf.sinh(r) * x 
 	# updates = normalise_to_hyperboloid(updates)
@@ -57,26 +56,26 @@ def exponential_mapping( p, x ):
 
 	####################################################
 
-	idx = tf.where(r > 1e-5)[:,0]
+	idx = tf.where(r > 0)[:,0]
 
 	# clip
-	# r = K.minimum(r, 1e-0)
+	r = K.minimum(r, 1e-0)
 
 	cosh_r = tf.cosh(r)
-	cosh_r = tf.verify_tensor_all_finite(cosh_r, 
-		"fail in cosh r")
+	# cosh_r = tf.verify_tensor_all_finite(cosh_r, 
+	# 	"fail in cosh r")
 	exp_map_p = cosh_r * p
 
-	exp_map_p = tf.verify_tensor_all_finite(exp_map_p, 
-		"fail in exp_map_p")
+	# exp_map_p = tf.verify_tensor_all_finite(exp_map_p, 
+		# "fail in exp_map_p")
 
 	non_zero_norm = tf.gather(r, idx)
 
 	z = tf.gather(x, idx)
 
 	updates = tf.sinh(non_zero_norm) * z
-	updates = tf.verify_tensor_all_finite(updates, 
-		"fail in updates")
+	# updates = tf.verify_tensor_all_finite(updates, 
+	# 	"fail in updates")
 	dense_shape = tf.shape(p, out_type=tf.int64)
 	exp_map_x = tf.scatter_nd(indices=idx[:,None],
 		updates=updates, 
@@ -88,9 +87,9 @@ def exponential_mapping( p, x ):
 	# z = x / K.maximum(r, K.epsilon()) # unit norm
 	# exp_map = tf.cosh(r) * p + tf.sinh(r) * x
 	#####################################################
-	exp_map = tf.verify_tensor_all_finite(exp_map, "error before")
+	# exp_map = tf.verify_tensor_all_finite(exp_map, "error before")
 	exp_map = normalise_to_hyperboloid(exp_map) # account for floating point imprecision
-	exp_map = tf.verify_tensor_all_finite(exp_map, "error after")
+	# exp_map = tf.verify_tensor_all_finite(exp_map, "error after")
 
 	return exp_map
 
@@ -152,7 +151,8 @@ class ExponentialMappingOptimizer(optimizer.Optimizer):
 				- self.lr * tangent_grad)
 
 			return tf.scatter_update(ref=var,
-				indices=indices, updates=exp_map,
+				indices=indices, 
+				updates=exp_map,
 				name="scatter_update")
 
 		else:

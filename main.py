@@ -90,8 +90,8 @@ def parse_args():
 		help="Number of negative samples for training (default is 10).")
 	parser.add_argument("--context-size", dest="context_size", type=int, default=3,
 		help="Context size for generating positive samples (default is 3).")
-	parser.add_argument("--patience", dest="patience", type=int, default=5,
-		help="The number of epochs of no improvement in loss before training is stopped. (Default is 5)")
+	parser.add_argument("--patience", dest="patience", type=int, default=25,
+		help="The number of epochs of no improvement in loss before training is stopped. (Default is 25)")
 
 	parser.add_argument("-d", "--dim", dest="embedding_dim", type=int,
 		help="Dimension of embeddings for each layer (default is 10).", default=10)
@@ -136,8 +136,7 @@ def configure_paths(args):
 	'''
 
 	if args.no_walks:
-		directory = os.path.join("no_walks",
-			"seed={:03d}".format(args.seed))
+		directory = os.path.join("seed={:03d}".format(args.seed))
 	else:
 		directory = os.path.join("alpha={:.02f}".format(args.alpha),
 			"seed={:03d}".format(args.seed))
@@ -171,8 +170,9 @@ def main():
 
 	assert not (args.visualise and args.embedding_dim > 2), "Can only visualise two dimensions"
 	assert args.embedding_path is not None, "you must specify a path to save embedding"
-	if not args.no_walks:
-		assert args.walk_path is not None, "you must specify a path to save walks"
+	assert args.no_walks
+	# if not args.no_walks:
+	# 	assert args.walk_path is not None, "you must specify a path to save walks"
 	assert args.use_generator
 
 	random.seed(args.seed)
@@ -183,6 +183,22 @@ def main():
 	if not args.visualise and node_labels is not None:
 		node_labels = None
 	print ("Loaded dataset")
+
+
+	import networkx as nx
+	assert len(list(nx.isolates(graph))) == 0
+
+
+	# print (nx.number_connected_components(graph.to_undirected()))
+	# raise SystemExit
+
+	# s = set(graph)
+	# s_ = set()
+	# for u, v in graph.edges:
+	# 	s_.add(u)
+	# 	s_.add(v)
+	# print (len(s - s_))
+	# raise SystemExit
 
 	if False:
 		plot_degree_dist(graph, "degree distribution")
@@ -198,6 +214,7 @@ def main():
 		args.embedding_dim, 
 		args.context_size,
 		args.num_negative_samples, 
+		args.batch_size,
 		lr=args.lr)
 	model, initial_epoch = load_weights(model, args)
 
@@ -216,27 +233,32 @@ def main():
 			verbose=True),
 		Checkpointer(epoch=initial_epoch, 
 			nodes=sorted(graph.nodes()), 
+			history=args.patience,
 			embedding_directory=args.embedding_path)
 	]			
 
 	positive_samples, negative_samples, probs = \
-			determine_positive_and_negative_samples(graph, features, args)
+			determine_positive_and_negative_samples(graph, 
+			features, 
+			args)
+	
+	# ps = [tuple(x[:-1]) for x in positive_samples]
 
 	# edges = []
 	# with open(os.path.join("edgelists","cora_ml",
 	# 	"seed=000", 
-	#   "removed_edges", "test_non_edges.tsv"), "r") as f:
+	#   "removed_edges", 
+	#   "test_edges.tsv"), "r") as f:
 	# 	for line in (l.rstrip() for l in f.readlines()):
 	# 		edge = tuple(int(i) for i in line.split("\t"))
 	# 		edges.append(edge)
 
 	# counts = 0
 	# for u, v in edges:
-	# 	samples = positive_samples[u]
-	# 	for i in range(args.context_size):
-	# 		if v in samples[i]:
-	# 			counts += 1
-	
+	# 	if (u, v) in ps:
+	# 		counts += 1
+		
+		
 	# print (counts / len(edges))
 
 	# raise SystemExit
@@ -246,7 +268,8 @@ def main():
 	if args.use_generator:
 		print ("Training with data generator with {} worker threads".format(args.workers))
 		training_generator = TrainingDataGenerator(positive_samples,  
-				probs,
+				# probs,
+				negative_samples,
 				model,
 				args,
 				graph
@@ -266,8 +289,11 @@ def main():
 	else:
 		print ("Training without data generator")
 
-		train_x = np.append(positive_samples, negative_samples, axis=-1)
-		train_y = np.zeros([len(train_x), 1, ], dtype=np.int32 )
+		train_x = np.append(positive_samples, 
+			negative_samples, 
+			axis=-1)
+		train_y = np.zeros([len(train_x), 1, ], 
+			dtype=np.int32 )
 
 		model.fit(train_x, train_y,
 			shuffle=True,
@@ -286,7 +312,9 @@ def main():
 			print ("projecting to poincare ball")
 			embedding = hyperboloid_to_poincare_ball(embedding)
 		draw_graph(graph,
-			embedding, node_labels, path="2d-poincare-disk-visualisation.png")
+			embedding, 
+			node_labels, 
+			path="2d-poincare-disk-visualisation.png")
 
 if __name__ == "__main__":
 	main()
