@@ -31,5 +31,5 @@ then
 	module load bluebear
 	module load apps/python3/3.5.2
 
-	python remove_edges.py --edgelist=$edgelist --features=$features --labels=$labels --output=$output --seed $seed
+	python remove_edges.py --edgelist=$edgelist --output=$output --seed $seed
 fi
