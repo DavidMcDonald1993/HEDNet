@@ -84,7 +84,7 @@ class Checkpointer(Callback):
 			# bins=np.arange(0, 1.1, .1))
 		# for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
 		# 	print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
-		# print ("saving current embedding to {}".format(embedding_filename))
+		print ("saving current embedding to {}".format(embedding_filename))
 		# print ()
 
 		variance_filename = os.path.join(self.embedding_directory, "{:05d}_variance.csv".format(self.epoch))
