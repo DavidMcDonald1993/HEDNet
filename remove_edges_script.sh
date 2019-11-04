@@ -3,12 +3,12 @@
 #SBATCH --job-name=removeEdges
 #SBATCH --output=removeEdges_%A_%a.out
 #SBATCH --error=removeEdges_%A_%a.err
-#SBATCH --array=0-89
+#SBATCH --array=0-119
 #SBATCH --time=05:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=20G
 
-datasets=({cora_ml,citeseer,pubmed})
+datasets=({cora_ml,citeseer,pubmed,wiki_vote})
 seeds=({0..29})
 
 num_datasets=${#datasets[@]}
@@ -21,8 +21,6 @@ dataset=${datasets[$dataset_id]}
 seed=${seeds[$seed_id]}
 
 edgelist=datasets/${dataset}/edgelist.tsv
-features=datasets/${dataset}/feats.csv
-labels=datasets/${dataset}/labels.csv
 output=edgelists/${dataset}
 
 edgelist_f=$(printf "${output}/seed=%03d/training_edges/edgelist.tsv" ${seed} )
@@ -33,5 +31,5 @@ then
 	module load bluebear
 	module load apps/python3/3.5.2
 
-	python remove_edges.py --edgelist=$edgelist --features=$features --labels=$labels --output=$output --seed $seed
+	python remove_edges.py --edgelist=$edgelist --output=$output --seed $seed
 fi
