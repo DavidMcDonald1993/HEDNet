@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=embeddingsRECONSynthetic
-#SBATCH --output=embeddingsRECONSynthetic_%A_%a.out
-#SBATCH --error=embeddingsRECONSynthetic_%A_%a.err
+#SBATCH --job-name=embeddingsLPSynthetic
+#SBATCH --output=embeddingsLPSynthetic_%A_%a.out
+#SBATCH --error=embeddingsLPSynthetic_%A_%a.err
 #SBATCH --array=0-3599
 #SBATCH --time=3-00:00:00
 #SBATCH --ntasks=1
@@ -27,10 +27,10 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 
 data_dir=datasets/synthetic_scale_free/${dataset}
-edgelist=${data_dir}/edgelist.tsv
+edgelist=$(printf edgelists/synthetic_scale_free/${dataset}/seed=%03d/training_edges/edgelist.tsv ${seed})
 # features=${data_dir}/feats.csv
 # labels=${data_dir}/labels.csv
-embedding_dir=embeddings/simple_scale_free/${dataset}/recon_experiment
+embedding_dir=embeddings/simple_scale_free/${dataset}/lp_experiment
 # walks_dir=walks/${dataset}/recon_experiment
 
 embedding_dir=$(printf "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
