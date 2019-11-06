@@ -90,8 +90,8 @@ def parse_args():
 		help="Number of negative samples for training (default is 10).")
 	parser.add_argument("--context-size", dest="context_size", type=int, default=3,
 		help="Context size for generating positive samples (default is 3).")
-	parser.add_argument("--patience", dest="patience", type=int, default=25,
-		help="The number of epochs of no improvement in loss before training is stopped. (Default is 25)")
+	parser.add_argument("--patience", dest="patience", type=int, default=5,
+		help="The number of epochs of no improvement in loss before training is stopped. (Default is 5)")
 
 	parser.add_argument("-d", "--dim", dest="embedding_dim", type=int,
 		help="Dimension of embeddings for each layer (default is 10).", default=10)
