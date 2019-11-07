@@ -30,7 +30,7 @@ data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=$(printf edgelists/synthetic_scale_free/${dataset}/seed=%03d/training_edges/edgelist.tsv ${seed})
 # features=${data_dir}/feats.csv
 # labels=${data_dir}/labels.csv
-embedding_dir=embeddings/simple_scale_free/${dataset}/lp_experiment
+embedding_dir=embeddings/synthetic_scale_free/${dataset}/lp_experiment
 # walks_dir=walks/${dataset}/recon_experiment
 
 embedding_dir=$(printf "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
