@@ -1,8 +1,8 @@
 import keras.backend as K
 import tensorflow as tf
 
-from tensorflow.train import AdamOptimizer, RMSPropOptimizer
-from tensorflow.train import AdagradOptimizer, GradientDescentOptimizer
+from tensorflow.train import AdamOptimizer#, RMSPropOptimizer
+# from tensorflow.train import AdagradOptimizer, GradientDescentOptimizer
 
 from tensorflow.python.eager import context
 from tensorflow.python.framework import ops

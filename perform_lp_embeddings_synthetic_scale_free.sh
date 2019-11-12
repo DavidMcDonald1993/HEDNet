@@ -3,7 +3,7 @@
 #SBATCH --job-name=embeddingsLPSynthetic
 #SBATCH --output=embeddingsLPSynthetic_%A_%a.out
 #SBATCH --error=embeddingsLPSynthetic_%A_%a.err
-#SBATCH --array=0-3599
+#SBATCH --array=0-119
 #SBATCH --time=3-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=16G
@@ -12,7 +12,8 @@ e=1000
 
 datasets=({00..29})
 dims=(5 10 25 50)
-seeds=({0..29})
+# seeds=({0..29})
+seed=(0)
 
 num_datasets=${#datasets[@]}
 num_dims=${#dims[@]}
