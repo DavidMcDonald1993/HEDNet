@@ -13,7 +13,7 @@ e=1000
 datasets=({00..29})
 dims=(2 5 10 25 50)
 # seeds=({0..29})
-seed=(0)
+seeds=(0)
 
 num_datasets=${#datasets[@]}
 num_dims=${#dims[@]}
@@ -21,7 +21,7 @@ num_seeds=${#seeds[@]}
 
 dataset_id=$((SLURM_ARRAY_TASK_ID / (num_seeds * num_dims) % num_datasets))
 dim_id=$((SLURM_ARRAY_TASK_ID / num_seeds % num_dims))
-seed_id=$((SLURM_ARRAY_TASK_ID % num_seeds ))
+seed_id=$((SLURM_ARRAY_TASK_ID % num_seeds))
 
 dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
