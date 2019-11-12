@@ -5,7 +5,7 @@
 #SBATCH --error=embeddingsLPSynthetic_%A_%a.err
 #SBATCH --array=0-3599
 #SBATCH --time=3-00:00:00
-#SBATCH --ntasks=3
+#SBATCH --ntasks=1
 #SBATCH --mem=16G
 
 e=1000
