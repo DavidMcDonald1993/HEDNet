@@ -160,15 +160,17 @@ class TrainingDataGenerator(Sequence):
 		# print ()
 		# raise SystemExit
 
+		assert np.allclose(negative_samples[1][-1], 1)
+		assert negative_samples[1][-1] == 1
 
 		batch_negative_samples = np.concatenate([
 			np.unravel_index(np.searchsorted(negative_samples[k], 
 			[random.random() 
 				for _ in range(count*num_negative_samples)]),
 				shape=(N, N))
-		# 	# np.unravel_index(np.searchsorted(negative_samples[k], 
-		# 		# np.random.rand(count*num_negative_samples)),
-		# 		# dims=(N, N))
+			# np.unravel_index(np.searchsorted(negative_samples[k], 
+				# np.random.rand(count*num_negative_samples)),
+				# dims=(N, N))
 			for k, count in Counter(batch_positive_samples[:,-1]).items()
 		], axis=1).T
 
@@ -201,6 +203,9 @@ class TrainingDataGenerator(Sequence):
 		for i in range(num_negative_samples):
 			training_sample[i+1::num_negative_samples+1] = batch_negative_samples[i::num_negative_samples]
 
+
+		# for u, v in training_sample:
+		# 	assert u != v, (u, v)
 		# for i in range(batch_size):
 		# 	arr = training_sample[i*(num_negative_samples+1):
 		# 		(i+1)*(num_negative_samples+1)]

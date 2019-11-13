@@ -33,6 +33,9 @@ def load_data(args):
 	graph = nx.read_weighted_edgelist(edgelist_filename, delimiter="\t", nodetype=int,
 		create_using=nx.DiGraph() if args.directed else nx.Graph())
 
+	# print ("removing self loop edges")
+	# graph.remove_edges_from(nx.selfloop_edges(graph))
+
 	zero_weight_edges = [(u, v) for u, v, w in graph.edges(data="weight") if w == 0.]
 	print ("removing", len(zero_weight_edges), "edges with 0. weight")
 	graph.remove_edges_from(zero_weight_edges)
@@ -250,10 +253,11 @@ def determine_positive_and_negative_samples(graph, features, args):
 		for k in range(len(positive_samples)):
 			if True or k == args.context_size:
 				# neg_samples = counts * counts.T 
-				neg_samples = np.ones((N, N)) #* np.exp(-(args.context_size+1))
+				neg_samples = np.ones((N, N), ) #* np.exp(-(args.context_size+1))
 				neg_samples[
 						np.sum(positive_samples[:k+1], axis=0).nonzero()
 					] = 0
+				assert np.allclose(neg_samples.diagonal(), 0)
 				# neg_samples = np.zeros((N, N)) 
 				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
 				# for k_ in range(len(positive_samples)):
@@ -267,8 +271,10 @@ def determine_positive_and_negative_samples(graph, features, args):
 				neg_samples[positive_samples[k+1].nonzero()] = 1
 				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
 			neg_samples = neg_samples.flatten()
-			neg_samples /= (neg_samples.sum(axis=-1, keepdims=True)+1e-15)
+			neg_samples /= neg_samples.sum()
 			neg_samples = neg_samples.cumsum(axis=-1)
+			assert np.allclose(neg_samples[-1], 1)
+			neg_samples[np.abs(neg_samples - neg_samples.max()) < 1e-15] = 1 
 			negative_samples.append(neg_samples)
 		return negative_samples
 
