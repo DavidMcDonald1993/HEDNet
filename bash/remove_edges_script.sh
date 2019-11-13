@@ -3,12 +3,12 @@
 #SBATCH --job-name=removeEdges
 #SBATCH --output=removeEdges_%A_%a.out
 #SBATCH --error=removeEdges_%A_%a.err
-#SBATCH --array=0-119
+#SBATCH --array=0-149
 #SBATCH --time=05:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=20G
 
-datasets=({cora_ml,citeseer,pubmed,wiki_vote})
+datasets=({cora_ml,citeseer,pubmed,wiki_vote,email})
 seeds=({0..29})
 
 num_datasets=${#datasets[@]}
