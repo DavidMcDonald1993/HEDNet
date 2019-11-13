@@ -8,7 +8,7 @@ walks
 embeddings
 *.png
 edgelists
-sps
 notes
 datasets/simple_scale_free
 jupyter_notebooks
+__pycache__
