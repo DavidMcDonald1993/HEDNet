@@ -17,7 +17,7 @@ from hednet.utils import build_training_samples, hyperboloid_to_poincare_ball, l
 from hednet.utils import perform_walks, determine_positive_and_negative_samples
 from hednet.generators import TrainingDataGenerator
 from hednet.visualise import draw_graph, plot_degree_dist
-from hednet.callbacks import Checkpointer
+from hednet.callbacks import Checkpointer, elu
 from hednet.models import build_hyperboloid_asym_model
 from hednet.optimizers import ExponentialMappingOptimizer
 from hednet.losses import asym_hyperbolic_loss
@@ -308,6 +308,26 @@ def main():
 		)
 
 	print ("Training complete")
+
+	print ("save final embedding")
+
+	embedding_filename = os.path.join(args.embedding_path, 
+			"final_embedding.csv")
+	embedding = model.get_weights()[0]
+	embedding_df = pd.DataFrame(embedding, index=sorted(graph.nodes()))
+	embedding_df.to_csv(embedding_filename)
+
+	print ("saved final embedding to {}".format(embedding_filename))
+
+	variance_filename = os.path.join(args.embedding_path, 
+		"final_variance.csv")
+	variance = model.get_weights()[1]
+
+	variance = elu(variance) + 1
+
+	print ("saving final variance to {}".format(variance_filename))
+	variance_df = pd.DataFrame(variance, index=sorted(graph.nodes()))
+	variance_df.to_csv(variance_filename)
 
 	if args.visualise:
 		embedding = model.get_weights()[0]
