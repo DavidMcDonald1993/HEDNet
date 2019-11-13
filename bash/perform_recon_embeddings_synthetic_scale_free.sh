@@ -31,22 +31,17 @@ data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
 embedding_dir=embeddings/synthetic_scale_free/${dataset}/recon_experiment
 embedding_dir=$(printf "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
-# echo $embedding_dir
 
-# if [ ! -f embedding_f ]
-# then 
-module purge
-module load bluebear
-# module load apps/python3/3.5.2
-# module load apps/keras/2.0.8-python-3.5.2
-module load TensorFlow/1.10.1-foss-2018b-Python-3.6.6
-pip install --user keras==2.2.4
+if [ ! -f ${embedding_dir}final_embedding.csv ]
+then 
+    module purge
+    module load bluebear
+    module load TensorFlow/1.10.1-foss-2018b-Python-3.6.6
+    pip install --user keras==2.2.4
 
-args=$(echo --edgelist ${edgelist} \
---embedding ${embedding_dir} --no-walks --seed ${seed} \
---dim ${dim} --use-generator --context-size 1 -e ${e})
+    args=$(echo --edgelist ${edgelist} \
+    --embedding ${embedding_dir} --no-walks --seed ${seed} \
+    --dim ${dim} --use-generator --context-size 1 -e ${e})
 
-# echo $args
-
-python main.py ${args}
-# fi
+    python main.py ${args}
+fi
