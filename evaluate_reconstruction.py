@@ -8,7 +8,7 @@ import pandas as pd
 
 import argparse
 
-from aheat.utils import load_embedding, load_data
+from hednet.utils import load_embedding, load_data
 
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 from sklearn.metrics.pairwise import euclidean_distances
@@ -53,64 +53,6 @@ def parallel_transport(p, q, x):
 	return x + minkowski_dot(q - alpha * p, x) * (p + q) / \
 		(alpha + 1) 
 
-# def log_likelihood(x, mu, sigma_inv, sigma_det):
-
-# 	# ignore zero t coordinate
-# 	x = x[...,:-1]
-
-# 	k = x.shape[-1]
-
-# 	x_minus_mu = x - mu
-
-# 	uu = np.sum(x_minus_mu ** 2 * sigma_inv, 
-# 		axis=-1, keepdims=True) # assume sigma inv is diagonal
-
-# 	return - 0.5 * (np.log(np.maximum(sigma_det, 1e-15)) +\
-# 		uu + k * np.log(2 * np.pi))
-
-# def hyperbolic_log_pdf(mus, sigmas):
-	
-
-# 	dim = mus.shape[1] - 1
-
-# 	# project to tangent space
-# 	source_mus = np.expand_dims(mus, axis=1)
-# 	target_mus = np.expand_dims(mus, axis=0)
-
-# 	to_tangent_space = logarithmic_map(source_mus, 
-# 		target_mus)
-
-# 	# parallel transport to mu zero
-# 	mu_zero = np.zeros((1, 1, dim + 1))
-# 	mu_zero[..., -1] = 1
-
-# 	to_tangent_space_mu_zero = parallel_transport(source_mus,
-# 	 mu_zero, to_tangent_space)
-
-# 	# compute euclidean_log_pdf
-
-# 	source_sigmas = np.expand_dims(sigmas, axis=0)
-# 	sigma_inv = 1 / source_sigmas
-# 	sigma_det = np.prod(source_sigmas, axis=-1, keepdims=True) 
-
-# 	logs = log_likelihood(to_tangent_space_mu_zero, 
-# 		np.zeros((1, 1, dim)), 
-# 		sigma_inv, 
-# 		sigma_det)
-# 	logs = np.squeeze(logs, axis=-1)
-
-# 	# compute log det proj v
-
-# 	norm = np.sqrt(np.maximum(0.,
-# 		minkowski_dot(to_tangent_space_mu_zero,
-# 			to_tangent_space_mu_zero)))
-# 	norm = np.squeeze(norm, axis=-1)
-
-# 	log_det_proj = (dim - 0) * (np.log(np.maximum(np.sinh(norm), 1e-15)) -\
-# 		np.log(np.maximum(norm, 1e-15)))
-	
-# 	return logs - log_det_proj
-
 def kullback_leibler_divergence_euclidean(mus, sigmas):
 
 	dim = mus.shape[1] - 1
@@ -149,10 +91,6 @@ def kullback_leibler_divergence_hyperboloid(mus, sigmas):
 
 	to_tangent_space = logarithmic_map(source_mus, 
 		target_mus)
-
-	# dists = hyperbolic_distance_hyperboloid(source_mus,
-	# 	target_mus)
-	# dists = np.squeeze(dists, 1)
 
 	# parallel transport to mu zero
 	mu_zero = np.zeros((1, 1, dim + 1))
@@ -206,7 +144,9 @@ def evaluate_precision_at_k(scores, edgelist, non_edgelist, k=10):
 
 	return np.mean(precisions)
 
-def evaluate_mean_average_precision(scores, edgelist, non_edgelist):
+def evaluate_mean_average_precision(scores, 
+	edgelist, 
+	non_edgelist):
 	edgelist_dict = {}
 	for u, v in edgelist:
 		if u not in edgelist_dict:
@@ -226,7 +166,8 @@ def evaluate_mean_average_precision(scores, edgelist, non_edgelist):
 	return np.mean(precisions)
 
 def evaluate_rank_and_MAP(scores, 
-	edgelist, non_edgelist):
+	edgelist, 
+	non_edgelist):
 	assert not isinstance(edgelist, dict)
 	assert (scores <= 0).all()
 
@@ -244,22 +185,6 @@ def evaluate_rank_and_MAP(scores,
 	scores_ = np.append(edge_scores, non_edge_scores)
 	ap_score = average_precision_score(labels, scores_) # macro by default
 	auc_score = roc_auc_score(labels, scores_)
-		
-	# fpr, tpr, thresholds = roc_curve(labels, scores_)
-	# import matplotlib.pyplot as plt
-
-	# plt.figure()
-	# lw = 2
-	# plt.plot(fpr, tpr, color='darkorange',
-	# 		lw=lw, label='ROC curve (area = %0.2f)' % auc_score)
-	# plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-	# plt.xlim([0.0, 1.0])
-	# plt.ylim([0.0, 1.05])
-	# plt.xlabel('False Positive Rate')
-	# plt.ylabel('True Positive Rate')
-	# plt.title('Receiver operating characteristic')
-	# plt.legend(loc="lower right")
-	# plt.show()
 
 	idx = (-non_edge_scores).argsort()
 	ranks = np.searchsorted(-non_edge_scores, 
@@ -385,7 +310,7 @@ def main():
 
 		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
-		embedding_filename, variance_filename = files[-2:]
+		embedding_filename, variance_filename = files[:2]
 	else:
 
 		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
@@ -404,8 +329,6 @@ def main():
 		variance_df = load_embedding(variance_filename)
 		variance_df = variance_df.reindex(sorted(variance_df.index))
 		variance = variance_df.values
-		# if dist_fn == "klh":
-		# 	variance = elu(variance, alpha=1.) + 1
 
 	if dist_fn == "poincare":
 		dists = hyperbolic_distance_poincare(embedding)
@@ -420,32 +343,28 @@ def main():
 
 	test_results = dict()
 
+	scores = -dists
+
 	(mean_rank_recon, ap_recon, 
-	roc_recon) = evaluate_rank_and_MAP(-dists, 
+	roc_recon) = evaluate_rank_and_MAP(scores, 
 		test_edges, test_non_edges)
 
 	test_results.update({"mean_rank_recon": mean_rank_recon, 
 		"ap_recon": ap_recon,
 		"roc_recon": roc_recon})
 
+	map_recon = evaluate_mean_average_precision(-dists, 
+		test_edges, test_non_edges)
+	test_results.update({"map_recon": map_recon})
+
 	precisions_at_k = [(k, 
-		evaluate_precision_at_k(-dists,  
+		evaluate_precision_at_k(scores,  
 			test_edges, test_non_edges, k=k))
 			for k in (1, 3, 5, 10)]
 	for k, pk in precisions_at_k:
 		print ("precision at", k, pk)
 	test_results.update({"p@{}".format(k): pk
 		for k, pk in precisions_at_k})
-
-	map_recon = evaluate_mean_average_precision(-dists, 
-		test_edges, test_non_edges)
-	print ("map recon", map_recon)
-	test_results.update({"map_recon": map_recon})
-
-	raise SystemExit
-
-
-
 
 	test_results_dir = args.test_results_dir
 	if not os.path.exists(test_results_dir):
@@ -456,7 +375,8 @@ def main():
 
 	print ("saving test results to {}".format(test_results_filename))
 
-	threadsafe_save_test_results(test_results_lock_filename, test_results_filename, args.seed, data=test_results )
+	threadsafe_save_test_results(test_results_lock_filename, 
+		test_results_filename, args.seed, data=test_results )
 
 	print ("done")
 

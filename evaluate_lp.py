@@ -7,7 +7,7 @@ import pandas as pd
 
 import argparse
 
-from aheat.utils import load_embedding, load_data
+from hednet.utils import load_embedding, load_data
 
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.metrics import average_precision_score, roc_auc_score
@@ -148,8 +148,8 @@ def kullback_leibler_divergence_hyperboloid(mus, sigmas):
 	to_tangent_space = logarithmic_map(source_mus, 
 		target_mus)
 
-	for x, y in zip(source_mus, to_tangent_space):
-		assert np.allclose(minkowski_dot(x, y), 0)
+	# for x, y in zip(source_mus, to_tangent_space):
+		# assert np.allclose(minkowski_dot(x, y), 0, atol=1e-6)
 
 	# parallel transport to mu zero
 	mu_zero = np.zeros((1, 1, dim + 1))
@@ -159,7 +159,7 @@ def kullback_leibler_divergence_hyperboloid(mus, sigmas):
 		mu_zero, 
 		to_tangent_space)
 
-	assert np.allclose(to_tangent_space_mu_zero[..., -1], 0)
+	# assert np.allclose(to_tangent_space_mu_zero[..., -1], 0, atol=1e-6), np.abs(to_tangent_space_mu_zero[..., -1]).max()
 
 	# mu is zero vector
 	# ignore zero t coordinate
@@ -281,8 +281,7 @@ def evaluate_mean_average_precision(scores,
 		
 		true_neighbours = edgelist_dict[u]
 		non_neighbours = non_edgelist_dict[u]
-		# print (len(true_neighbours), len(non_neighbours))
-		non_neighbours = random.sample(non_neighbours, len(true_neighbours))
+		# non_neighbours = random.sample(non_neighbours, len(true_neighbours))
 		labels = np.append(np.ones_like(true_neighbours), 
 			np.zeros_like(non_neighbours))
 		scores_ = scores[u, true_neighbours+non_neighbours]
@@ -400,14 +399,11 @@ def main():
 	test_edgelist_fn = os.path.join(removed_edges_dir, "test_edges.tsv")
 	test_non_edgelist_fn = os.path.join(removed_edges_dir, "test_non_edges.tsv")
 
-	print ("loading test edges from {}".format(test_edgelist_fn))
-	print ("loading test non-edges from {}".format(test_non_edgelist_fn))
-
 	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
 
 	if  dist_fn in ["kle", "klh"]:
-		embedding_filename, variance_filename = files[-2:]
+		embedding_filename, variance_filename = files[:2]
 	else:
 		embedding_filename = files[-1]
 
@@ -424,6 +420,16 @@ def main():
 		variance_df = load_embedding(variance_filename)
 		variance_df = variance_df.reindex(sorted(variance_df.index))
 		variance = variance_df.values
+
+		print ("variance min", variance.min())
+		print ("variance max", variance.max())
+		print ("variance mean", variance.mean())
+		print ("variance std", variance.std())
+		counts, bin_edges = np.histogram(variance, 
+			bins=np.arange(np.ceil(variance.max()+1)))
+		for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
+			print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
+		
 		# if dist_fn == "klh":
 		# 	variance = elu(variance, alpha=1.) + 1
 		# 	print (variance.min(), variance.max())
@@ -439,8 +445,14 @@ def main():
 	else: 
 		dists = euclidean_distance(embedding)
 
+	print ("loading test edges from {}".format(test_edgelist_fn))
+	print ("loading test non-edges from {}".format(test_non_edgelist_fn))
+
 	test_edges = read_edgelist(test_edgelist_fn)
 	test_non_edges = read_edgelist(test_non_edgelist_fn)
+
+	print ("number of test edges:", len(test_edges))
+	print ("number of test non edges:", len(test_non_edges))
 
 	test_results = dict()
 
@@ -461,18 +473,19 @@ def main():
 
 	test_results.update({"map_lp": map_lp})
 
-	raise SystemExit
-
 	test_results_dir = args.test_results_dir
 	if not os.path.exists(test_results_dir):
-		os.makedirs(test_results_dir)
-	test_results_filename = os.path.join(test_results_dir, "test_results.csv")
-	test_results_lock_filename = os.path.join(test_results_dir, "test_results.lock")
+		os.makedirs(test_results_dir, exist_ok=True)
+	test_results_filename = os.path.join(test_results_dir, 
+		"test_results.csv")
+	test_results_lock_filename = os.path.join(test_results_dir, 
+		"test_results.lock")
 	touch(test_results_lock_filename)
 
 	print ("saving test results to {}".format(test_results_filename))
 
-	threadsafe_save_test_results(test_results_lock_filename, test_results_filename, seed, data=test_results )
+	threadsafe_save_test_results(test_results_lock_filename, 
+		test_results_filename, seed, data=test_results )
 
 	print ("done")
 
