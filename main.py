@@ -323,8 +323,6 @@ def main():
 		"final_variance.csv")
 	variance = model.get_weights()[1]
 
-	assert not np.isnan(variance)
-
 	variance = elu(variance) + 1
 
 	print ("saving final variance to {}".format(variance_filename))
