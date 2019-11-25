@@ -7,7 +7,7 @@ seeds=({0..29})
 for dataset in ${datasets[@]};
 do
 
-	output=edgelists/synthetic_scale_free/${dataset}
+	output=edgelists/${dataset}
 
 	for seed in ${seeds[@]};
 	do
