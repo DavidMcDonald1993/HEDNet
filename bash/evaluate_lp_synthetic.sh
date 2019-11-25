@@ -40,8 +40,8 @@ args=$(echo --output ${output} --dist_fn klh \
     --test-results-dir ${test_results})
 echo ${args}
 
-# module purge
-# module load bluebear
-# module load apps/python3/3.5.2
+module purge
+module load bluebear
+module load apps/python3/3.5.2
 
-# python evaluate_lp.py ${args}
+python evaluate_lp.py ${args}
