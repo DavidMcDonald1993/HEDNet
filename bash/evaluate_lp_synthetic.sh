@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=HEDNETevaluateLP
 #SBATCH --output=HEDNETevaluateLP_%A_%a.out
-#SBATCH --error=evaluateLP_%A_%a.err
+#SBATCH --error=HEDNETevaluateLP_%A_%a.err
 #SBATCH --array=0-149
 #SBATCH --time=05:00
 #SBATCH --ntasks=1
