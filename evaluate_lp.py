@@ -402,9 +402,20 @@ def main():
 	files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
 		"*.csv")))
 
-	if  dist_fn in ["kle", "klh"]:
-		embedding_filename, variance_filename = files[:2]
+	if dist_fn == "klh":
+		embedding_filename = os.path.join(args.embedding_directory, 
+			"final_embedding.csv")
+		variance_filename = os.path.join(args.embedding_directory,
+			"final_variance.csv")
+	elif dist_fn == "kle":
+		embedding_filename = os.path.join(args.embedding_directory, 
+			"mu.csv")
+		variance_filename = os.path.join(args.embedding_directory,
+			"sigma.csv")
 	else:
+
+		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
+		"*_embedding.csv")))
 		embedding_filename = files[-1]
 
 	print ("loading embedding from", embedding_filename)
@@ -420,19 +431,6 @@ def main():
 		variance_df = load_embedding(variance_filename)
 		variance_df = variance_df.reindex(sorted(variance_df.index))
 		variance = variance_df.values
-
-		print ("variance min", variance.min())
-		print ("variance max", variance.max())
-		print ("variance mean", variance.mean())
-		print ("variance std", variance.std())
-		counts, bin_edges = np.histogram(variance, 
-			bins=np.arange(np.ceil(variance.max()+1)))
-		for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
-			print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
-		
-		# if dist_fn == "klh":
-		# 	variance = elu(variance, alpha=1.) + 1
-		# 	print (variance.min(), variance.max())
 
 	if dist_fn == "poincare":
 		dists = hyperbolic_distance_poincare(embedding)

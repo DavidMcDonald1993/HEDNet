@@ -286,7 +286,7 @@ def main():
 
 	args.directed = True
 
-	graph, features, node_labels = load_data(args)
+	graph, _, _ = load_data(args)
 	assert nx.is_directed(graph)
 	print ("Loaded dataset")
 	print ()
@@ -305,12 +305,16 @@ def main():
 	idx = np.random.permutation(num_non_edges, )[:num_edges]
 	test_non_edges = test_non_edges[idx]
 
-
-	if  dist_fn in ["kle", "klh"]:
-
-		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
-		"*.csv")))
-		embedding_filename, variance_filename = files[:2]
+	if dist_fn == "klh":
+		embedding_filename = os.path.join(args.embedding_directory, 
+			"final_embedding.csv")
+		variance_filename = os.path.join(args.embedding_directory,
+			"final_variance.csv")
+	elif dist_fn == "kle":
+		embedding_filename = os.path.join(args.embedding_directory, 
+			"mu.csv")
+		variance_filename = os.path.join(args.embedding_directory,
+			"sigma.csv")
 	else:
 
 		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
