@@ -26,6 +26,8 @@ dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 
+data_dir=datasets/synthetic_scale_free/${dataset}
+edgelist=${data_dir}/edgelist.tsv
 embedding_dir=embeddings/synthetic_scale_free/${dataset}/${exp}
 output=edgelists/synthetic_scale_free/${dataset}
 
@@ -35,7 +37,7 @@ embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d" ${seed} ${dim})
 echo ${embedding_dir}
 
-args=$(echo --output ${output} --dist_fn klh \
+args=$(echo --edgelist ${edgelist} --output ${output} --dist_fn klh \
     --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})
 echo ${args}

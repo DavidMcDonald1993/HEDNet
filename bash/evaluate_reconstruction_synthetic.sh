@@ -25,7 +25,6 @@ seed_id=$((SLURM_ARRAY_TASK_ID % num_seeds ))
 dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
-alpha=${alphas[$alpha_id]}
 
 data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
