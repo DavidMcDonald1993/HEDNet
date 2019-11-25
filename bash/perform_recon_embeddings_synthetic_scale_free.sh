@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=embeddingsRECONSynthetic
-#SBATCH --output=embeddingsRECONSynthetic_%A_%a.out
-#SBATCH --error=embeddingsRECONSynthetic_%A_%a.err
+#SBATCH --job-name=HEDNETembeddingsRECONSynthetic
+#SBATCH --output=HEDNETembeddingsRECONSynthetic_%A_%a.out
+#SBATCH --error=HEDNETembeddingsRECONSynthetic_%A_%a.err
 #SBATCH --array=0-149
 #SBATCH --time=3-00:00:00
 #SBATCH --ntasks=3
@@ -32,7 +32,7 @@ edgelist=${data_dir}/edgelist.tsv
 embedding_dir=embeddings/synthetic_scale_free/${dataset}/recon_experiment
 embedding_dir=$(printf "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 
-if [ ! -f ${embedding_dir}final_embedding.csv ]
+if [ ! -f ${embedding_dir}final_embedding.csv.gz ]
 then 
     module purge
     module load bluebear

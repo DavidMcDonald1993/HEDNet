@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=embeddingsLP
-#SBATCH --output=embeddingsLP_%A_%a.out
-#SBATCH --error=embeddingsLP_%A_%a.err
+#SBATCH --job-name=HEDNETembeddingsLP
+#SBATCH --output=HEDNETembeddingsLP_%A_%a.out
+#SBATCH --error=HEDNETembeddingsLP_%A_%a.err
 #SBATCH --array=0-749
 #SBATCH --time=3-00:00:00
 #SBATCH --ntasks=3
@@ -13,7 +13,6 @@ e=10000
 datasets=({cora_ml,citeseer,pubmed,wiki_vote,email})
 dims=(2 5 10 25 50)
 seeds=({0..29})
-# seeds=(0)
 
 num_datasets=${#datasets[@]}
 num_dims=${#dims[@]}
@@ -32,7 +31,7 @@ edgelist=$(printf edgelists/${dataset}/seed=%03d/training_edges/edgelist.tsv ${s
 embedding_dir=embeddings/${dataset}/lp_experiment
 embedding_dir=$(printf "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 
-if [ ! -f ${embedding_dir}final_embedding.csv ]
+if [ ! -f ${embedding_dir}final_embedding.csv.gz ]
 then 
     module purge
     module load bluebear
