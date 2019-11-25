@@ -31,7 +31,7 @@ edgelist=${data_dir}/edgelist.tsv
 embedding_dir=embeddings/synthetic_scale_free/${dataset}/${exp}
 
 test_results=$(printf \
-    "test_results/synthetic_scale_free/${exp}/dim=%03d/" ${dim})
+    "test_results/synthetic_scale_free/${exp}/dim=%03d/HEDNet/" ${dim})
 embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
