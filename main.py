@@ -50,14 +50,6 @@ def load_weights(model, args):
 		initial_epoch = int(weight_file.split("/")[-1].split("_")[0])
 		print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(weight_file, initial_epoch))
 		model.load_weights(weight_file)
-		# embedding_file, variance_file = previous_models[-2:]
-		# initial_epoch = int(embedding_file.split("/")[-1].split("_")[0])
-		# print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(embedding_file, initial_epoch))
-		# embedding_df = load_embedding(embedding_file)
-		# embedding = embedding_df.reindex(sorted(embedding_df.index)).values
-		# variance_df = pd.read_csv(variance_file, index_col=0)
-		# variance = variance_df.reindex(sorted(variance_df.index)).values
-		# model.layers[1].set_weights([embedding, variance])
 	else:
 		print ("no previous model found in {}".format(args.embedding_path))
 		initial_epoch = 0
@@ -135,35 +127,14 @@ def configure_paths(args):
 	build directories on local system for output of model after each epoch
 	'''
 
-	# if args.no_walks:
-	# 	directory = os.path.join("seed={:03d}".format(args.seed))
-	# else:
-	# 	directory = os.path.join("alpha={:.02f}".format(args.alpha),
-	# 		"seed={:03d}".format(args.seed))
-	
-	# args.embedding_path = os.path.join(args.embedding_path, directory, "dim={:03d}".format(args.embedding_dim) )
-
-	# assert os.path.exists(args.walk_path)
 	if not args.no_walks:
 		assert False
-		# args.walk_path = os.path.join(args.walk_path, directory)
-		# if not os.path.exists(args.walk_path):
-		# 	os.makedirs(args.walk_path)
-		# 	print ("making {}".format(args.walk_path))
-		# print ("saving walks to {}".format(args.walk_path))
-		# # walk filename 
-		# args.walk_filename = os.path.join(args.walk_path, "num_walks={}-walk_len={}-p={}-q={}.walk".format(args.num_walks, 
-		# 			args.walk_length, args.p, args.q))
 
 	if not os.path.exists(args.embedding_path):
 		os.makedirs(args.embedding_path)
 		print ("making {}".format(args.embedding_path))
 	print ("saving embedding to {}".format(args.embedding_path))
 
-	# # embedding filename
-	# args.embedding_filename = os.path.join(args.embedding_path, 
-		# "embedding.csv")
-	
 def main():
 
 	args = parse_args()
@@ -173,8 +144,6 @@ def main():
 	assert not (args.visualise and args.embedding_dim > 2), "Can only visualise two dimensions"
 	assert args.embedding_path is not None, "you must specify a path to save embedding"
 	assert args.no_walks
-	# if not args.no_walks:
-	# 	assert args.walk_path is not None, "you must specify a path to save walks"
 	assert args.use_generator
 
 	random.seed(args.seed)
@@ -186,21 +155,9 @@ def main():
 		node_labels = None
 	print ("Loaded dataset")
 
-
 	import networkx as nx
 	assert len(list(nx.isolates(graph))) == 0
 
-
-	# print (nx.number_connected_components(graph.to_undirected()))
-	# raise SystemExit
-
-	# s = set(graph)
-	# s_ = set()
-	# for u, v in graph.edges:
-	# 	s_.add(u)
-	# 	s_.add(v)
-	# print (len(s - s_))
-	# raise SystemExit
 
 	if False:
 		plot_degree_dist(graph, "degree distribution")
@@ -244,27 +201,6 @@ def main():
 			features, 
 			args)
 	
-	# ps = [tuple(x[:-1]) for x in positive_samples]
-
-	# edges = []
-	# with open(os.path.join("edgelists","cora_ml",
-	# 	"seed=000", 
-	#   "removed_edges", 
-	#   "test_edges.tsv"), "r") as f:
-	# 	for line in (l.rstrip() for l in f.readlines()):
-	# 		edge = tuple(int(i) for i in line.split("\t"))
-	# 		edges.append(edge)
-
-	# counts = 0
-	# for u, v in edges:
-	# 	if (u, v) in ps:
-	# 		counts += 1
-		
-		
-	# print (counts / len(edges))
-
-	# raise SystemExit
-
 	del features # remove features reference to free up memory
 
 	if args.use_generator:
@@ -312,7 +248,7 @@ def main():
 	print ("save final embedding")
 
 	embedding_filename = os.path.join(args.embedding_path, 
-			"final_embedding.csv")
+			"final_embedding.csv.gz")
 	embedding = model.get_weights()[0]
 	embedding_df = pd.DataFrame(embedding, index=sorted(graph.nodes()))
 	embedding_df.to_csv(embedding_filename)
@@ -320,7 +256,7 @@ def main():
 	print ("saved final embedding to {}".format(embedding_filename))
 
 	variance_filename = os.path.join(args.embedding_path, 
-		"final_variance.csv")
+		"final_variance.csv.gz")
 	variance = model.get_weights()[1]
 
 	variance = elu(variance) + 1

@@ -46,7 +46,8 @@ class Checkpointer(Callback):
 		self.save_model()
 
 	def remove_old_models(self):
-		for old_model_path in sorted(glob.glob(os.path.join(self.embedding_directory, "*")))[:-3*self.history]:
+		for old_model_path in sorted(
+			glob.iglob(os.path.join(self.embedding_directory, "*")))[:-3*self.history]:
 			print ("removing model: {}".format(old_model_path))
 			os.remove(old_model_path)
 
@@ -58,52 +59,26 @@ class Checkpointer(Callback):
 		print ("saving weights to", weights_filename)
 
 		embedding_filename = os.path.join(self.embedding_directory, 
-			"{:05d}_embedding.csv".format(self.epoch))
+			"{:05d}_embedding.csv.gz".format(self.epoch))
 		embedding = self.model.get_weights()[0]
-		# assert embedding.shape[1] == 11
 		assert not np.any(np.isnan(embedding))
 		assert not np.any(np.isinf(embedding))
 		assert (embedding[:,-1] > 0).all(), embedding[:,-1]
 		assert np.allclose(minkowski_dot(embedding, embedding), -1)
 
-		# u = np.expand_dims(embedding, 1)
-		# v = np.expand_dims(embedding, 0)
-		# dists = hyperbolic_distance_hyperboloid(u, v)
-		# print ("dists max", dists.max())
-
+		print ("saving current embedding to {}".\
+			format(embedding_filename))
 		embedding_df = pd.DataFrame(embedding, index=self.nodes)
-		embedding_df.to_csv(embedding_filename)
+		embedding_df.to_csv(embedding_filename, compression="gzip")
 
-		embedding = hyperboloid_to_poincare_ball(embedding)
-		# norm = np.linalg.norm(embedding, axis=-1)
-		# print ("norm min", norm.min())
-		# print ("norm max", norm.max(),)
-		# print ("norm mean", norm.mean())
-		# print ("norm std", norm.std())
-		# counts, bin_edges = np.histogram(norm, 
-			# bins=np.arange(0, 1.1, .1))
-		# for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
-		# 	print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
-		print ("saving current embedding to {}".format(embedding_filename))
-		# print ()
-
-		variance_filename = os.path.join(self.embedding_directory, "{:05d}_variance.csv".format(self.epoch))
+		variance_filename = os.path.join(self.embedding_directory, 
+			"{:05d}_variance.csv.gz".format(self.epoch))
 		variance = self.model.get_weights()[1]
-		# assert variance.shape[1] == 10
 
 		variance = elu(variance) + 1
 
-		# print ("variance min", variance.min())
-		# print ("variance max", variance.max())
-		# print ("variance mean", variance.mean())
-		# print ("variance std", variance.std())
-		# counts, bin_edges = np.histogram(variance, 
-		# 	# bins=np.arange(np.ceil(variance.max()+1))
-		# 	)
-		# for x, start, stop in zip(counts, bin_edges[:-1], bin_edges[1:]):
-		# 	print ("between {:.01f} and {:.01f}: {}".format(start, stop, x))
-		
-		print ("saving current variance to {}".format(variance_filename))
+		print ("saving current variance to {}".\
+			format(variance_filename))
 		variance_df = pd.DataFrame(variance, index=self.nodes)
-		variance_df.to_csv(variance_filename)
+		variance_df.to_csv(variance_filename, compression="gzip")
 		print()
