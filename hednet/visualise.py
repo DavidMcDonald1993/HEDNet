@@ -125,7 +125,7 @@ def draw_graph(graph, embedding, labels, path, s=25):
 
     if labels is not None:
         # filter out noise nodes labelled as -1
-        idx, = np.where(labels[:,0] > -1)
+        # idx, = np.where(labels[:,0] > -1)
         num_labels = int(max(set(labels[:,0])) + 1)
         # colours = np.random.rand(num_labels, 3)
         colours = np.array([
@@ -173,7 +173,7 @@ def draw_graph(graph, embedding, labels, path, s=25):
 
     pos = {n: emb for n, emb in zip(sorted(graph.nodes()), embedding)}
     node_colours = np.array([colours[labels[n, 0]] for n in graph.nodes()]) if colours is not None else None
-    
+
     # bc  = nx.betweenness_centrality(graph)
     # node_sizes = np.array([(bc[n] + .05) * 50 for n in sorted(graph.nodes())])
     node_sizes = np.array([graph.degree(n, weight="weight") for n in graph.nodes()])

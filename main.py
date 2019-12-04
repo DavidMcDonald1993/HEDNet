@@ -13,8 +13,8 @@ from keras.callbacks import TerminateOnNaN, EarlyStopping
 
 import tensorflow as tf
 
-from hednet.utils import build_training_samples, hyperboloid_to_poincare_ball, load_data, load_embedding
-from hednet.utils import perform_walks, determine_positive_and_negative_samples
+from hednet.utils import hyperboloid_to_poincare_ball, load_data
+from hednet.utils import determine_positive_and_negative_samples
 from hednet.generators import TrainingDataGenerator
 from hednet.visualise import draw_graph, plot_degree_dist
 from hednet.callbacks import Checkpointer, elu
@@ -64,10 +64,8 @@ def parse_args():
 
 	parser.add_argument("--edgelist", dest="edgelist", type=str, default=None,
 		help="edgelist to load.")
-	parser.add_argument("--features", dest="features", type=str, default=None,
-		help="features to load.")
 	parser.add_argument("--labels", dest="labels", type=str, default=None,
-		help="path to labels")
+		help="path to labels (just used for plotting)")
 
 	parser.add_argument("--seed", dest="seed", type=int, default=0,
 		help="Random seed (default is 0).")
@@ -88,36 +86,16 @@ def parse_args():
 	parser.add_argument("-d", "--dim", dest="embedding_dim", type=int,
 		help="Dimension of embeddings for each layer (default is 10).", default=10)
 
-	parser.add_argument("-p", dest="p", type=float, default=1.,
-		help="node2vec return parameter (default is 1.).")
-	parser.add_argument("-q", dest="q", type=float, default=1.,
-		help="node2vec in-out parameter (default is 1.).")
-	parser.add_argument('--num-walks', dest="num_walks", type=int, default=25, 
-		help="Number of walks per source (default is 25).")
-	parser.add_argument('--walk-length', dest="walk_length", type=int, default=15, 
-		help="Length of random walk from source (default is 80).")
-
-	parser.add_argument("--alpha", dest="alpha", type=float, default=0, 
-		help="Probability of randomly jumping to a similar node when walking.")
-
 	parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", 
 		help="Use this flag to set verbosity of training.")
 	parser.add_argument('--workers', dest="workers", type=int, default=2, 
 		help="Number of worker threads to generate training patterns (default is 2).")
 
-	parser.add_argument("--walks", dest="walk_path", default=None, 
-		help="path to save random walks.")
-
 	parser.add_argument("--embedding", dest="embedding_path", default=None, 
 		help="path to save embedings.")
 
-	parser.add_argument('--use-generator', action="store_true", help='flag to train using a generator')
-
 	parser.add_argument('--visualise', action="store_true", 
 		help='flag to visualise embedding (embedding_dim must be 2)')
-
-	parser.add_argument('--no-walks', action="store_true", 
-		help='flag to only train on edgelist (no random walks)')
 
 	args = parser.parse_args()
 	return args
@@ -126,10 +104,6 @@ def configure_paths(args):
 	'''
 	build directories on local system for output of model after each epoch
 	'''
-
-	if not args.no_walks:
-		assert False
-
 	if not os.path.exists(args.embedding_path):
 		os.makedirs(args.embedding_path)
 		print ("making {}".format(args.embedding_path))
@@ -139,31 +113,22 @@ def main():
 
 	args = parse_args()
 
-	args.directed = True
-
 	assert not (args.visualise and args.embedding_dim > 2), "Can only visualise two dimensions"
 	assert args.embedding_path is not None, "you must specify a path to save embedding"
-	assert args.no_walks
-	assert args.use_generator
 
 	random.seed(args.seed)
 	np.random.seed(args.seed)
 	tf.set_random_seed(args.seed)
 
-	graph, features, node_labels = load_data(args)
+	graph, node_labels = load_data(args)
 	if not args.visualise and node_labels is not None:
 		node_labels = None
 	print ("Loaded dataset")
-
-	import networkx as nx
-	assert len(list(nx.isolates(graph))) == 0
-
 
 	if False:
 		plot_degree_dist(graph, "degree distribution")
 
 	configure_paths(args)
-
 	print ("Configured paths")
 
 	# build model
@@ -176,11 +141,6 @@ def main():
 		args.batch_size,
 		lr=args.lr)
 	model, initial_epoch = load_weights(model, args)
-
-	# optimizer = ExponentialMappingOptimizer(lr=args.lr)
-	# model.compile(optimizer=optimizer, 
-	# 	loss=asym_hyperbolic_loss,
-	# 	target_tensors=[ tf.placeholder(dtype=tf.int64), ])
 
 	model.summary()
 
@@ -196,56 +156,34 @@ def main():
 			embedding_directory=args.embedding_path)
 	]			
 
-	positive_samples, negative_samples, probs = \
+	positive_samples, negative_samples = \
 			determine_positive_and_negative_samples(graph, 
-			features, 
 			args)
-	
-	del features # remove features reference to free up memory
 
-	if args.use_generator:
-		print ("Training with data generator with {} worker threads".format(args.workers))
-		training_generator = TrainingDataGenerator(positive_samples,  
-				# probs,
-				negative_samples,
-				model,
-				args,
-				graph
-				)
+	print ("Training with data generator with {} worker threads".format(args.workers))
+	training_generator = TrainingDataGenerator(positive_samples,  
+			# probs,
+			negative_samples,
+			model,
+			args,
+			graph
+			)
 
-		model.fit_generator(training_generator, 
-			workers=args.workers,
-			max_queue_size=10, 
-			# use_multiprocessing=args.workers>0, 
-			use_multiprocessing=False,
-			epochs=args.num_epochs, 
-			steps_per_epoch=len(training_generator),
-			initial_epoch=initial_epoch, 
-			verbose=args.verbose,
-			callbacks=callbacks
-		)
-
-	else:
-		print ("Training without data generator")
-
-		train_x = np.append(positive_samples, 
-			negative_samples, 
-			axis=-1)
-		train_y = np.zeros([len(train_x), 1, ], 
-			dtype=np.int32 )
-
-		model.fit(train_x, train_y,
-			shuffle=True,
-			batch_size=args.batch_size, 
-			epochs=args.num_epochs, 
-			initial_epoch=initial_epoch, 
-			verbose=args.verbose,
-			callbacks=callbacks
-		)
+	model.fit_generator(training_generator, 
+		workers=args.workers,
+		max_queue_size=10, 
+		# use_multiprocessing=args.workers>0, 
+		use_multiprocessing=False,
+		epochs=args.num_epochs, 
+		steps_per_epoch=len(training_generator),
+		initial_epoch=initial_epoch, 
+		verbose=args.verbose,
+		callbacks=callbacks
+	)
 
 	print ("Training complete")
 
-	print ("save final embedding")
+	print ("saving final embedding")
 
 	embedding_filename = os.path.join(args.embedding_path, 
 			"final_embedding.csv.gz")

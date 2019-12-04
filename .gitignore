@@ -4,6 +4,7 @@ hednet/greedy_routing.py
 hednet/tree.py
 hednet/metrics.py
 hednet/hyperbolic_feedforward.py
+hednet/node2vec_sampling.py
 walks
 embeddings
 *.png

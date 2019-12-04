@@ -15,14 +15,10 @@ def build_hyperboloid_asym_model(num_nodes,
 	lr=1e-1, ):
 	x = Input((1 + 1 + 0, ),
 		dtype=tf.int64)
-	weights = Input(( 1, ),
-		dtype=K.floatx())
 
 	hyperboloid_embedding = HyperboloidGaussianEmbeddingLayer(num_nodes, embedding_dim)(x)
 
-	hyperboloid_embedding = Concatenate()([hyperboloid_embedding, weights])
-
-	model = Model([x, weights], hyperboloid_embedding)
+	model = Model(x, hyperboloid_embedding)
 
 	optimizer = ExponentialMappingOptimizer(lr=lr,)
 	# optimizer = MyAdamOptimizer()

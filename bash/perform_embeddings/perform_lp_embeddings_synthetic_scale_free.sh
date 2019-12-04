@@ -39,8 +39,8 @@ then
     pip install --user keras==2.2.4
 
     args=$(echo --edgelist ${edgelist} \
-    --embedding ${embedding_dir} --no-walks --seed ${seed} \
-    --dim ${dim} --use-generator --context-size 1 -e ${e})
+    --embedding ${embedding_dir}  --seed ${seed} \
+    --dim ${dim} --context-size 1 -e ${e})
 
     python main.py ${args}
 fi
