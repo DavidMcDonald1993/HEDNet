@@ -1,12 +1,6 @@
 import tensorflow as tf 
 import keras.backend as K
 
-# import itertools
-
-# def minkowski_dot(x, y):
-#     assert len(x.shape) == len(y.shape)
-#     return K.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
-
 def asym_hyperbolic_loss(num_negative_samples=10):
 
 	def loss(y_true, y_pred):

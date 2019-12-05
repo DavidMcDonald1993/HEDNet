@@ -60,7 +60,8 @@ def parse_args():
 	'''
 	parse args from the command line
 	'''
-	parser = argparse.ArgumentParser(description="HEAT algorithm for feature learning on complex networks")
+	parser = argparse.ArgumentParser(
+		description="HEDNET algorithm for feature learning on directed complex networks")
 
 	parser.add_argument("--edgelist", dest="edgelist", type=str, default=None,
 		help="edgelist to load.")
@@ -152,7 +153,7 @@ def main():
 			verbose=True),
 		Checkpointer(epoch=initial_epoch, 
 			nodes=sorted(graph.nodes()), 
-			history=args.patience,
+			# history=args.patience,
 			embedding_directory=args.embedding_path)
 	]			
 
@@ -162,16 +163,15 @@ def main():
 
 	print ("Training with data generator with {} worker threads".format(args.workers))
 	training_generator = TrainingDataGenerator(positive_samples,  
-			# probs,
-			negative_samples,
-			model,
-			args,
-			graph
-			)
+		negative_samples,
+		model,
+		args,
+		graph
+	)
 
 	model.fit_generator(training_generator, 
 		workers=args.workers,
-		max_queue_size=10, 
+		max_queue_size=100, 
 		# use_multiprocessing=args.workers>0, 
 		use_multiprocessing=False,
 		epochs=args.num_epochs, 

@@ -5,7 +5,7 @@ from keras.models import Model
 
 from hednet.losses import asym_hyperbolic_loss
 from hednet.hyperboloid_layers import HyperboloidGaussianEmbeddingLayer
-from hednet.optimizers import ExponentialMappingOptimizer, MyAdamOptimizer
+from hednet.optimizers import ExponentialMappingOptimizer
 
 def build_hyperboloid_asym_model(num_nodes, 
 	embedding_dim, 

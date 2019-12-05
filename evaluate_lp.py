@@ -383,7 +383,7 @@ def main():
 
 	args.directed = True
 
-	graph, _, _ = load_data(args)
+	graph, _ = load_data(args)
 	assert nx.is_directed(graph)
 	print ("Loaded dataset")
 	print ()
@@ -404,18 +404,18 @@ def main():
 
 	if dist_fn == "klh":
 		embedding_filename = os.path.join(args.embedding_directory, 
-			"final_embedding.csv")
+			"final_embedding.csv.gz")
 		variance_filename = os.path.join(args.embedding_directory,
-			"final_variance.csv")
+			"final_variance.csv.gz")
 	elif dist_fn == "kle":
 		embedding_filename = os.path.join(args.embedding_directory, 
-			"mu.csv")
+			"mu.csv.gz")
 		variance_filename = os.path.join(args.embedding_directory,
-			"sigma.csv")
+			"sigma.csv.gz")
 	else:
 
 		files = sorted(glob.iglob(os.path.join(args.embedding_directory, 
-		"*_embedding.csv")))
+		"*_embedding.csv.gz")))
 		embedding_filename = files[-1]
 
 	print ("loading embedding from", embedding_filename)

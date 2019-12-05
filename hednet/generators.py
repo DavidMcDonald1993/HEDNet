@@ -33,30 +33,32 @@ class TrainingDataGenerator(Sequence):
 		self.N = len(graph)
 		self.context_size = args.context_size
 		
+		# self.sps = nx.floyd_warshall_numpy(graph, nodelist=sorted(graph))
+
 		print ("Built generator")
 
-	def get_training_sample(self, batch_positive_samples):
-		negative_samples = self.negative_samples
-		num_negative_samples = self.num_negative_samples
+	# def get_training_sample(self, batch_positive_samples):
+	# 	negative_samples = self.negative_samples
+	# 	num_negative_samples = self.num_negative_samples
 
-		batch_negative_samples = np.array([
-			# samples +
-			# random.choices(self.negative_samples[samples[0]],
-			# 	k=num_negative_samples-(len(samples)-1))
-			# for samples in batch_positive_samples
-			np.searchsorted(negative_samples[k][u], 
-				np.random.rand(num_negative_samples))
-			for u, _, k in batch_positive_samples
-		],
-		dtype=np.int64)
+	# 	batch_negative_samples = np.array([
+	# 		# samples +
+	# 		# random.choices(self.negative_samples[samples[0]],
+	# 		# 	k=num_negative_samples-(len(samples)-1))
+	# 		# for samples in batch_positive_samples
+	# 		np.searchsorted(negative_samples[k][u], 
+	# 			np.random.rand(num_negative_samples))
+	# 		for u, _, k in batch_positive_samples
+	# 	],
+	# 	dtype=np.int64)
 
 
-		batch_nodes = np.concatenate([batch_positive_samples[:,:-1],
-			batch_negative_samples], axis=1)
+	# 	batch_nodes = np.concatenate([batch_positive_samples[:,:-1],
+	# 		batch_negative_samples], axis=1)
 
-		# batch_nodes = batch_negative_samples
+	# 	# batch_nodes = batch_negative_samples
 
-		return batch_nodes
+	# 	return batch_nodes
 
 	def __len__(self):
 		return 1000
@@ -76,7 +78,6 @@ class TrainingDataGenerator(Sequence):
 
 		idx = batch_positive_samples[:,-1].argsort()
 		batch_positive_samples = batch_positive_samples[idx]
-
 
 		assert np.allclose(negative_samples[1][-1], 1)
 		assert negative_samples[1][-1] == 1
@@ -98,6 +99,14 @@ class TrainingDataGenerator(Sequence):
 		training_sample[::num_negative_samples+1] = batch_positive_samples[:,:-1]
 		for i in range(num_negative_samples):
 			training_sample[i+1::num_negative_samples+1] = batch_negative_samples[i::num_negative_samples]
+
+		# for i in range(self.batch_size):
+
+		# 	arr = training_sample[i*(num_negative_samples+1) : (i+1)*(num_negative_samples+1)]
+		# 	for row in arr[1:]:
+		# 		assert self.sps[arr[0,0], arr[0,1]] < self.sps[row[0], row[1]]
+
+
 
 		target = np.zeros((len(training_sample), 1))
 

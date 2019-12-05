@@ -30,7 +30,7 @@ class Checkpointer(Callback):
 		epoch,
 		nodes,
 		embedding_directory,
-		history=3
+		history=0
 		):
 		self.epoch = epoch
 		self.nodes = nodes
