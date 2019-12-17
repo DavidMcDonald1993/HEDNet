@@ -3,14 +3,15 @@
 #SBATCH --job-name=HEDNETevaluateRECON
 #SBATCH --output=HEDNETevaluateRECON_%A_%a.out
 #SBATCH --error=HEDNETevaluateRECON_%A_%a.err
-#SBATCH --array=0-749
-#SBATCH --time=1-00:00:00
+#SBATCH --array=0-149
+#SBATCH --time=20:00
 #SBATCH --ntasks=1
-#SBATCH --mem=30G
+#SBATCH --mem=5G
 
-datasets=({cora_ml,citeseer,pubmed,wiki_vote,email})
+datasets=({00..29})
 dims=(2 5 10 25 50)
-seeds=({0..29})
+# seeds=({0..29})
+seeds=(0)
 exp=recon_experiment
 
 num_datasets=${#datasets[@]}
@@ -25,12 +26,12 @@ dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 
-data_dir=datasets/${dataset}
+data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
-embedding_dir=embeddings/${dataset}/${exp}
+embedding_dir=embeddings/synthetic_scale_free/${dataset}/${exp}
 
 test_results=$(printf \
-    "test_results/${dataset}/${exp}/dim=%03d/HEDNet/" ${dim})
+    "test_results/synthetic_scale_free/${exp}/dim=%03d/HEDNet/" ${dim})
 embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
@@ -44,4 +45,4 @@ module purge
 module load bluebear
 module load apps/python3/3.5.2
 
-python evaluate_reconstruction.py ${args}
+python evaluation/evaluate_reconstruction.py ${args}

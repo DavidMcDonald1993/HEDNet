@@ -7,7 +7,7 @@ import networkx as nx
 import argparse
 
 from hednet.utils import load_data
-from evaluation_utils import compute_scores, evaluate_rank_and_MAP, evaluate_mean_average_precision, evaluate_precision_at_k, touch, threadsafe_save_test_results, read_edgelist
+from evaluation_utils import load_embedding, compute_scores, evaluate_rank_AUROC_AP, evaluate_mean_average_precision, evaluate_precision_at_k, touch, threadsafe_save_test_results, read_edgelist
 
 def parse_args():
 
@@ -72,14 +72,16 @@ def main():
 	print ("number of test edges:", len(test_edges))
 	print ("number of test non edges:", len(test_non_edges))
 
-	scores = compute_scores(args)
+	embedding = load_embedding(args.dist_fn, args.embedding_directory)
+
+	scores = compute_scores(embedding, args.dist_fn)
 
 	test_results = dict()
 
 	(mean_rank_lp, ap_lp, 
-	roc_lp) = evaluate_rank_and_MAP(scores, 
-	test_edges, 
-	test_non_edges)
+		roc_lp) = evaluate_rank_AUROC_AP(scores, 
+		test_edges, 
+		test_non_edges)
 
 	test_results.update({"mean_rank_lp": mean_rank_lp, 
 		"ap_lp": ap_lp,

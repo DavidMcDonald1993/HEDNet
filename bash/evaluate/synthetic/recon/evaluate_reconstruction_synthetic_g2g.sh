@@ -1,19 +1,19 @@
 #!/bin/bash
 
-#SBATCH --job-name=G2GevaluateLP
-#SBATCH --output=G2GevaluateLP_%A_%a.out
-#SBATCH --error=G2GevaluateLP_%A_%a.err
+#SBATCH --job-name=G2GevaluateRECON
+#SBATCH --output=G2GevaluateRECON_%A_%a.out
+#SBATCH --error=G2GevaluateRECON_%A_%a.err
 #SBATCH --array=0-749
-#SBATCH --time=1-00:00:00
+#SBATCH --time=20:00
 #SBATCH --ntasks=1
-#SBATCH --mem=20G
+#SBATCH --mem=5G
 
 scales=(False)
-datasets=({cora_ml,citeseer,pubmed,wiki_vote,email})
+datasets=({00..29})
 dims=(2 5 10 25 50)
-seeds=({0..29})
-ks=(03)
-exp=lp_experiment
+seeds=(0)
+ks=(02 03 04 05 06)
+exp=recon_experiment
 
 num_scales=${#scales[@]}
 num_datasets=${#datasets[@]}
@@ -33,17 +33,17 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 k=${ks[k_id]}
 
-data_dir=datasets/${dataset}
+data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
-output=edgelists/${dataset}
+embedding_dir=../graph2gauss/embeddings/synthetic_scale_free/${dataset}/${exp}/scale=${scale}/k=${k}
 
 test_results=$(printf \
-    "test_results/${dataset}/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
-embedding_dir=../graph2gauss/embeddings/${dataset}/${exp}
-embedding_dir=$(printf "${embedding_dir}/scale=${scale}/k=${k}/seed=%03d/dim=%03d/" ${seed} ${dim})
+    "test_results/synthetic_scale_free/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
+embedding_dir=$(printf \
+    "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
 
-args=$(echo --edgelist ${edgelist} --output ${output} --dist_fn kle \
+args=$(echo --edgelist ${edgelist} --dist_fn kle \
     --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})
 echo ${args}
@@ -52,4 +52,4 @@ module purge
 module load bluebear
 module load apps/python3/3.5.2
 
-python evaluate_lp.py ${args}
+python evaluation/evaluate_reconstruction.py ${args}

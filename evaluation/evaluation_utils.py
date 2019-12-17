@@ -46,7 +46,9 @@ def parallel_transport(p, q, x):
 		(alpha + 1) 
 
 
-def kullback_leibler_divergence_euclidean(mus, sigmas):
+def kullback_leibler_divergence_euclidean(mu_sigmas):
+
+	mus, sigmas = mu_sigmas
 
 	dim = mus.shape[1] - 1
 
@@ -74,7 +76,9 @@ def kullback_leibler_divergence_euclidean(mus, sigmas):
 
 	return np.squeeze(0.5 * (trace + uu - dim - log_det), axis=-1)
 
-def kullback_leibler_divergence_hyperboloid(mus, sigmas):
+def kullback_leibler_divergence_hyperboloid(mu_sigmas):
+
+	mus, sigmas = mu_sigmas
 
 	dim = mus.shape[1] - 1
 
@@ -179,28 +183,41 @@ def load_st(embedding_directory):
 	target = load_file(target_filename)
 	return source, target
 
-def compute_scores(args):
-	dist_fn = args.dist_fn	
-	embedding_directory = args.embedding_directory
+def load_embedding(dist_fn, embedding_directory):
 
 	if dist_fn == "hyperboloid":
 		embedding = load_hyperboloid(embedding_directory)
-		scores = -hyperbolic_distance_hyperboloid(embedding)
+		return embedding
 	elif dist_fn == "poincare":
 		embedding = load_poincare(embedding_directory)
-		scores = -hyperbolic_distance_poincare(embedding)
+		return embedding
 	elif dist_fn == "euclidean":
 		embedding = load_euclidean(embedding_directory)
-		scores = -euclidean_distances(embedding)
+		return embedding
 	elif dist_fn == "klh":
 		embedding, variance = load_klh(embedding_directory)
-		scores = -kullback_leibler_divergence_hyperboloid(embedding, variance)
+		return embedding, variance
 	elif dist_fn == "kle":
 		embedding, variance = load_kle(embedding_directory)
-		scores = -kullback_leibler_divergence_euclidean(embedding, variance)
+		return embedding, variance
 	elif dist_fn == "st":
 		source, target = load_st(embedding_directory)
-		scores = -euclidean_distances(source, target)
+		return source, target
+
+def compute_scores(embedding, dist_fn):
+
+	if dist_fn == "hyperboloid":
+		scores = -hyperbolic_distance_hyperboloid(embedding)
+	elif dist_fn == "poincare":
+		scores = -hyperbolic_distance_poincare(embedding)
+	elif dist_fn == "euclidean":
+		scores = -euclidean_distances(embedding)
+	elif dist_fn == "klh":
+		scores = -kullback_leibler_divergence_hyperboloid(embedding)
+	elif dist_fn == "kle":
+		scores = -kullback_leibler_divergence_euclidean(embedding)
+	elif dist_fn == "st":
+		scores = -euclidean_distances(embedding[0], embedding[1])
 
 	return scores
 
@@ -244,7 +261,7 @@ def evaluate_mean_average_precision(scores,
 
 	return np.mean(precisions)
 
-def evaluate_rank_and_MAP(scores, 
+def evaluate_rank_AUROC_AP(scores, 
 	edgelist, 
 	non_edgelist):
 	assert not isinstance(edgelist, dict)
