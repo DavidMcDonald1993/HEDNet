@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 import os
 os.environ["PYTHON_EGG_CACHE"] = "/rds/projects/2018/hesz01/poincare-embeddings/python-eggs"
 

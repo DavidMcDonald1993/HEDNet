@@ -9,7 +9,7 @@ from sklearn.metrics import f1_score
 
 from skmultilearn.model_selection import IterativeStratification
 
-from aheat.utils import load_data, hyperboloid_to_klein, poincare_ball_to_hyperboloid, hyperboloid_to_poincare_ball
+from hednet.utils import load_data, hyperboloid_to_klein, poincare_ball_to_hyperboloid, hyperboloid_to_poincare_ball
 from evaluation_utils import touch, threadsafe_save_test_results, load_embedding
 
 import functools

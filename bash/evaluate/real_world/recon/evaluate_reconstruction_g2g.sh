@@ -53,4 +53,4 @@ module purge
 module load bluebear
 module load apps/python3/3.5.2
 
-python evaluation/evaluate_reconstruction.py ${args}
+python evaluate_reconstruction.py ${args}
