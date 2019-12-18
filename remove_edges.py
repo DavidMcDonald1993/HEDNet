@@ -12,7 +12,7 @@ from hednet.utils import load_data
 def write_edgelist_to_file(edgelist, filename):
 	# g = nx.DiGraph(edgelist)
 	# nx.write_edgelist(g, filename, delimiter="\t")
-	with open(file, "w+") as f:
+	with open(filename, "w+") as f:
 		for u, v in edgelist:
 			f.write("{}\t{}\n".format(u, v))
 
@@ -40,7 +40,9 @@ def split_edges(graph,
 	neg_mul=1):
 	
 	assert isinstance(graph, nx.DiGraph)
-	assert isinstance(edges, set)
+	assert isinstance(edges, list)
+
+	edge_set = set(edges)
 
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
@@ -52,17 +54,17 @@ def split_edges(graph,
 	# ensure every node appears in edgelist
 	nodes = set(graph)
 	# edges = set(edges)
-	cover = set()
+	cover = []
 	for u, v in edges:
 		if u in nodes or v in nodes:
 			nodes -= {u, v}
-			cover.add((u, v))
+			cover.append((u, v))
 		if len(nodes) == 0:
 			break
 
-	# edges = [edge for edge in edges
-	# 	if edge not in cover] + cover
-	edges = list(edges - cover) + list(cover)
+	edges = [edge for edge in edges
+		if edge not in cover] + cover
+	# edges = list(edges - cover) + list(cover)
 
 	val_edges = edges[:num_val_edges]
 	test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
@@ -74,11 +76,11 @@ def split_edges(graph,
 	# test_non_edges = non_edges[num_val_edges*neg_mul:num_val_edges*neg_mul+num_test_edges*neg_mul]
 
 	val_non_edges = sample_non_edges(graph, 
-		edges, 
+		edge_set, 
 		num_val_edges*neg_mul)
 	print ("determined val non edges")
 	test_non_edges = sample_non_edges(graph,
-		edges.union(val_non_edges),
+		edge_set.union(val_non_edges),
 		num_test_edges*neg_mul)
 	print ("determined test non edges")
 
@@ -131,7 +133,7 @@ def main():
 	print("loaded dataset")
 	assert nx.is_directed(graph)
 
-	edges = set(graph.edges())
+	edges = list(graph.edges())
 	print ("enumerated edges")
 	# non_edges = list(nx.non_edges(graph))
 	# print ("enumerated non edges")
@@ -146,7 +148,7 @@ def main():
 	print ("number of val edges", len(val_edges), "number of val non edges", len(val_edges))
 	print ("number of test edges", len(test_edges), "number of test non edges", len(test_edges))
 
-	graph.remove_edges_from(val_edges.union(test_edges))
+	graph.remove_edges_from(val_edges + test_edges) # remove val and test edges
 	graph.add_edges_from(((u, u, {"weight": 0}) for u in graph.nodes())) # ensure that every node appears at least once by adding self loops
 
 	print ("removed edges")
