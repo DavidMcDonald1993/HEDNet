@@ -33,7 +33,7 @@ def split_edges(graph,
 	test_split=0.10, 
 	neg_mul=1):
 	
-	assert isinstance(graph, nx.DiGraph())
+	assert isinstance(graph, nx.DiGraph)
 
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
