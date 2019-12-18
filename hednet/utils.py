@@ -8,20 +8,19 @@ import networkx as nx
 
 import random
 
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import StandardScaler
+# from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
 
 import pickle as pickle
-from scipy.sparse import identity
 
 
 from multiprocessing.pool import Pool 
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
-from collections import Counter
+# from collections import Counter
 
 
 def load_data(args):
@@ -174,6 +173,8 @@ def determine_positive_and_negative_samples(graph, args):
 
 
 	def build_positive_samples(graph, k=3):
+		from scipy.sparse import identity
+
 		assert k > 0
 
 		def step(X):
