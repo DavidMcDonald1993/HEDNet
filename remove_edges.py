@@ -21,11 +21,11 @@ def sample_non_edges(nodes, edges, sample_size):
 	non_edges = []
 	while len(non_edges) < sample_size:
 		edge = tuple(random.sample(nodes, k=2))
-		if edge not in edges:
+		if edge not in edges + non_edges:
 			non_edges.append(edge)
 	return non_edges
 
-def split_edges(nodes, 
+def split_edges(graph, 
 	edges, 
 	# non_edges, 
 	seed,
@@ -33,7 +33,7 @@ def split_edges(nodes,
 	test_split=0.10, 
 	neg_mul=1):
 	
-	assert isinstance(nodes, set)
+	assert isinstance(graph, nx.DiGraph())
 
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
@@ -43,29 +43,35 @@ def split_edges(nodes,
 	# random.shuffle(non_edges)
 
 	# ensure every node appears in edgelist
-	# edges = set(edges)
-	cover = []
+	nodes = set(graph)
+	edges = set(edges)
+	cover = set()
 	for u, v in edges:
 		if u in nodes or v in nodes:
 			nodes -= {u, v}
-			cover.append((u, v))
+			cover.add((u, v))
 
-	edges = [edge for edge in edges
-		if edge not in cover] + cover
+	# edges = [edge for edge in edges
+	# 	if edge not in cover] + cover
+	edges = list(edges - cover) + list(cover)
 
 	val_edges = edges[:num_val_edges]
 	test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
 	train_edges = edges[num_val_edges+num_test_edges:]
 
+	print ("determined edge split")
+
 	# val_non_edges = non_edges[:num_val_edges*neg_mul]
 	# test_non_edges = non_edges[num_val_edges*neg_mul:num_val_edges*neg_mul+num_test_edges*neg_mul]
 
-	val_non_edges = sample_non_edges(nodes, 
+	val_non_edges = sample_non_edges(graph, 
 		edges, 
 		num_val_edges*neg_mul)
-	test_non_edges = sample_non_edges(nodes,
+	print ("determined val non edges")
+	test_non_edges = sample_non_edges(graph,
 		edges + val_non_edges,
 		num_test_edges*neg_mul)
+	print ("determined test non edges")
 
 	return train_edges, (val_edges, val_non_edges), (test_edges, test_non_edges)
 
@@ -122,7 +128,7 @@ def main():
 	# print ("enumerated non edges")
 
 	(_, (val_edges, val_non_edges), 
-	(test_edges, test_non_edges)) = split_edges(set(graph), 
+	(test_edges, test_non_edges)) = split_edges(graph, 
 		edges, 
 		# non_edges, 
 		seed, 
