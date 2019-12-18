@@ -10,15 +10,16 @@ import argparse
 from hednet.utils import load_data
 
 def write_edgelist_to_file(edgelist, filename):
-	g = nx.DiGraph(edgelist)
-	nx.write_edgelist(g, filename, delimiter="\t")
-	# with open(file, "w+") as f:
-	# 	for u, v in edgelist:
-	# 		f.write("{}\t{}\n".format(u, v))
+	# g = nx.DiGraph(edgelist)
+	# nx.write_edgelist(g, filename, delimiter="\t")
+	with open(file, "w+") as f:
+		for u, v in edgelist:
+			f.write("{}\t{}\n".format(u, v))
 
 def sample_non_edges(nodes, edges, sample_size):
+	assert isinstance(edges, set)
 	nodes = list(nodes)
-	edges = set(edges)
+	# edges = set(edges)
 	print ("sampling", sample_size, "non edges")
 	non_edges = set()
 	while len(non_edges) < sample_size:
@@ -39,6 +40,7 @@ def split_edges(graph,
 	neg_mul=1):
 	
 	assert isinstance(graph, nx.DiGraph)
+	assert isinstance(edges, set)
 
 	num_val_edges = int(np.ceil(len(edges) * val_split))
 	num_test_edges = int(np.ceil(len(edges) * test_split))
@@ -49,7 +51,7 @@ def split_edges(graph,
 
 	# ensure every node appears in edgelist
 	nodes = set(graph)
-	edges = set(edges)
+	# edges = set(edges)
 	cover = set()
 	for u, v in edges:
 		if u in nodes or v in nodes:
@@ -76,7 +78,7 @@ def split_edges(graph,
 		num_val_edges*neg_mul)
 	print ("determined val non edges")
 	test_non_edges = sample_non_edges(graph,
-		edges + val_non_edges,
+		edges.union(val_non_edges),
 		num_test_edges*neg_mul)
 	print ("determined test non edges")
 
@@ -129,7 +131,7 @@ def main():
 	print("loaded dataset")
 	assert nx.is_directed(graph)
 
-	edges = list(graph.edges())
+	edges = set(graph.edges())
 	print ("enumerated edges")
 	# non_edges = list(nx.non_edges(graph))
 	# print ("enumerated non edges")
@@ -144,7 +146,7 @@ def main():
 	print ("number of val edges", len(val_edges), "number of val non edges", len(val_edges))
 	print ("number of test edges", len(test_edges), "number of test non edges", len(test_edges))
 
-	graph.remove_edges_from(val_edges + test_edges)
+	graph.remove_edges_from(val_edges.union(test_edges))
 	graph.add_edges_from(((u, u, {"weight": 0}) for u in graph.nodes())) # ensure that every node appears at least once by adding self loops
 
 	print ("removed edges")
