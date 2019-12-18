@@ -9,10 +9,12 @@ import argparse
 
 from hednet.utils import load_data
 
-def write_edgelist_to_file(edgelist, file):
-	with open(file, "w+") as f:
-		for u, v in edgelist:
-			f.write("{}\t{}\n".format(u, v))
+def write_edgelist_to_file(edgelist, filename):
+	g = nx.DiGraph(edgelist)
+	nx.write_edgelist(g, filename, delimiter="\t")
+	# with open(file, "w+") as f:
+	# 	for u, v in edgelist:
+	# 		f.write("{}\t{}\n".format(u, v))
 
 def split_edges(nodes, 
 	edges, 
@@ -94,7 +96,7 @@ def main():
 	test_edgelist_fn = os.path.join(removed_edges_dir, "test_edges.tsv")
 	test_non_edgelist_fn = os.path.join(removed_edges_dir, "test_non_edges.tsv")
 	
-	graph, _, _ = load_data(args)
+	graph, _ = load_data(args)
 	print("loaded dataset")
 	assert nx.is_directed(graph)
 
