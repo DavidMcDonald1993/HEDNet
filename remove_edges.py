@@ -50,6 +50,8 @@ def split_edges(graph,
 		if u in nodes or v in nodes:
 			nodes -= {u, v}
 			cover.add((u, v))
+		if len(nodes) == 0:
+			break
 
 	# edges = [edge for edge in edges
 	# 	if edge not in cover] + cover
