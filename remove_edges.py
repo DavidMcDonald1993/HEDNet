@@ -17,6 +17,7 @@ def write_edgelist_to_file(edgelist, filename):
 	# 		f.write("{}\t{}\n".format(u, v))
 
 def sample_non_edges(nodes, edges, sample_size):
+	nodes = list(nodes)
 	print ("sampling", sample_size, "non edges")
 	non_edges = []
 	while len(non_edges) < sample_size:
