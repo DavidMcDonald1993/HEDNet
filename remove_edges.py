@@ -18,12 +18,16 @@ def write_edgelist_to_file(edgelist, filename):
 
 def sample_non_edges(nodes, edges, sample_size):
 	nodes = list(nodes)
+	edges = set(edges)
 	print ("sampling", sample_size, "non edges")
-	non_edges = []
+	non_edges = set()
 	while len(non_edges) < sample_size:
-		edge = tuple(random.sample(nodes, k=2))
-		if edge not in edges + non_edges:
-			non_edges.append(edge)
+		non_edges_= {tuple(random.sample(nodes, k=2))
+			for _ in range(sample_size - len(non_edges))}
+		non_edges_ -= edges 
+		non_edges = non_edges.union(non_edges_)
+		# if edge not in edges + non_edges:
+		# 	non_edges.append(edge)
 	return non_edges
 
 def split_edges(graph, 
