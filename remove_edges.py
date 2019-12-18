@@ -16,9 +16,18 @@ def write_edgelist_to_file(edgelist, filename):
 	# 	for u, v in edgelist:
 	# 		f.write("{}\t{}\n".format(u, v))
 
+def sample_non_edges(nodes, edges, sample_size):
+	print ("sampling", sample_size, "non edges")
+	non_edges = []
+	while len(non_edges) < sample_size:
+		edge = tuple(random.sample(nodes, k=2))
+		if edge not in edges:
+			non_edges.append(edge)
+	return non_edges
+
 def split_edges(nodes, 
 	edges, 
-	non_edges, 
+	# non_edges, 
 	seed,
 	val_split=0.05, 
 	test_split=0.10, 
@@ -31,7 +40,7 @@ def split_edges(nodes,
 
 	random.seed(seed)
 	random.shuffle(edges)
-	random.shuffle(non_edges)
+	# random.shuffle(non_edges)
 
 	# ensure every node appears in edgelist
 	# edges = set(edges)
@@ -48,8 +57,15 @@ def split_edges(nodes,
 	test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
 	train_edges = edges[num_val_edges+num_test_edges:]
 
-	val_non_edges = non_edges[:num_val_edges*neg_mul]
-	test_non_edges = non_edges[num_val_edges*neg_mul:num_val_edges*neg_mul+num_test_edges*neg_mul]
+	# val_non_edges = non_edges[:num_val_edges*neg_mul]
+	# test_non_edges = non_edges[num_val_edges*neg_mul:num_val_edges*neg_mul+num_test_edges*neg_mul]
+
+	val_non_edges = sample_non_edges(nodes, 
+		edges, 
+		num_val_edges*neg_mul)
+	test_non_edges = sample_non_edges(nodes,
+		edges + val_non_edges,
+		num_test_edges*neg_mul)
 
 	return train_edges, (val_edges, val_non_edges), (test_edges, test_non_edges)
 
@@ -101,12 +117,14 @@ def main():
 	assert nx.is_directed(graph)
 
 	edges = list(graph.edges())
-	non_edges = list(nx.non_edges(graph))
+	print ("enumerated edges")
+	# non_edges = list(nx.non_edges(graph))
+	# print ("enumerated non edges")
 
 	(_, (val_edges, val_non_edges), 
 	(test_edges, test_non_edges)) = split_edges(set(graph), 
 		edges, 
-		non_edges, 
+		# non_edges, 
 		seed, 
 		val_split=0)
 
