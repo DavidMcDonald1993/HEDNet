@@ -61,14 +61,31 @@ def split_edges(graph,
 			cover.append((u, v))
 		if len(nodes) == 0:
 			break
+	
+	print ("determined cover")
 
-	edges = [edge for edge in edges
-		if edge not in cover] + cover
+	# edges = [edge for edge in edges
+	# 	if edge not in cover] + cover
+	edges = filter(lambda edge: edge not in cover, edges)
+	
+	print ("filtered cover out of edges")
 	# edges = list(edges - cover) + list(cover)
 
-	val_edges = edges[:num_val_edges]
-	test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
-	train_edges = edges[num_val_edges+num_test_edges:]
+	# val_edges = edges[:num_val_edges]
+	# test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
+	# train_edges = edges[num_val_edges+num_test_edges:]
+	val_edges = []
+	test_edges = []
+	train_edges = []
+	for edge in edges:
+		if len(val_edges) < num_val_edges:
+			val_edges.append(edge)
+		elif len(test_edges) < num_test_edges:
+			test_edges.append(edge)
+		else:
+			train_edges.append(edge)
+
+	train_edges += cover
 
 	print ("determined edge split")
 
@@ -160,6 +177,14 @@ def main():
 	write_edgelist_to_file(test_non_edges, test_non_edgelist_fn)
 
 	print ("done")
+
+
+	# h = nx.read_weighted_edgelist(training_edgelist_fn, 
+	# 	delimiter="\t",)
+	# print (len(h), len(h.edges))
+	# for edge in val_edges + test_edges:
+	# 	print (edge)
+	# 	assert edge not in h.edges
 
 if __name__ == "__main__":
 	main()
