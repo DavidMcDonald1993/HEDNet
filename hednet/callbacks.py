@@ -37,6 +37,7 @@ class Checkpointer(Callback):
 		self.embedding_directory = embedding_directory
 		self.history = history
 
+
 	def on_epoch_end(self, batch, logs={}):
 		self.epoch += 1
 		if self.epoch % 1 != 0:
@@ -47,7 +48,7 @@ class Checkpointer(Callback):
 
 	def remove_old_models(self):
 		for old_model_path in sorted(
-			glob.iglob(os.path.join(self.embedding_directory, "*")))[:-3*self.history]:
+			glob.iglob(os.path.join(self.embedding_directory, "*"))):
 			print ("removing model: {}".format(old_model_path))
 			os.remove(old_model_path)
 
