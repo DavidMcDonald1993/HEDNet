@@ -209,7 +209,7 @@ def main():
 
 	args = parse_args()
 
-	_, _, node_labels = load_data(args)
+	_, node_labels = load_data(args)
 	print ("Loaded dataset")
 	# dist_fn = args.dist_fn
 

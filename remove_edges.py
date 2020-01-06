@@ -8,28 +8,8 @@ import networkx as nx
 import argparse
 
 from hednet.utils import load_data
+from remove_utils import sample_non_edges, write_edgelist_to_file
 
-def write_edgelist_to_file(edgelist, filename):
-	# g = nx.DiGraph(edgelist)
-	# nx.write_edgelist(g, filename, delimiter="\t")
-	with open(filename, "w+") as f:
-		for u, v in edgelist:
-			f.write("{}\t{}\n".format(u, v))
-
-def sample_non_edges(nodes, edges, sample_size):
-	assert isinstance(edges, set)
-	nodes = list(nodes)
-	# edges = set(edges)
-	print ("sampling", sample_size, "non edges")
-	non_edges = set()
-	while len(non_edges) < sample_size:
-		non_edges_= {tuple(random.sample(nodes, k=2))
-			for _ in range(sample_size - len(non_edges))}
-		non_edges_ -= edges 
-		non_edges = non_edges.union(non_edges_)
-		# if edge not in edges + non_edges:
-		# 	non_edges.append(edge)
-	return non_edges
 
 def split_edges(graph, 
 	edges, 
@@ -37,7 +17,8 @@ def split_edges(graph,
 	seed,
 	val_split=0.05, 
 	test_split=0.10, 
-	neg_mul=1):
+	neg_mul=1,
+	cover=True):
 	
 	assert isinstance(graph, nx.DiGraph)
 	assert isinstance(edges, list)
@@ -55,14 +36,15 @@ def split_edges(graph,
 	nodes = set(graph)
 	# edges = set(edges)
 	cover = []
-	for u, v in edges:
-		if u in nodes or v in nodes:
-			nodes -= {u, v}
-			cover.append((u, v))
-		if len(nodes) == 0:
-			break
-	
-	print ("determined cover")
+	if cover:
+		for u, v in edges:
+			if u in nodes or v in nodes:
+				nodes -= {u, v}
+				cover.append((u, v))
+			if len(nodes) == 0:
+				break
+		
+		print ("determined cover")
 
 	# edges = [edge for edge in edges
 	# 	if edge not in cover] + cover
