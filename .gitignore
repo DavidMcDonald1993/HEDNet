@@ -12,4 +12,4 @@ edgelists
 notes
 datasets/simple_scale_free
 jupyter_notebooks
-__pycache__
+hednet/__pycache__
