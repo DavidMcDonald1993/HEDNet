@@ -9,49 +9,6 @@ from keras.regularizers import l2
 import tensorflow as tf
 
 import functools
-# from tensorflow.python.framework import ops
-# from tensorflow.python.ops import math_ops, control_flow_ops
-# from tensorflow.python.training import optimizer
-# from tensorflow.keras.optimizers import SGD
-
-# import itertools
-
-# min_ = 1e-0
-
-# def euclidean_pdf(x, mu, sigma):
-
-# 	# ignore zero t coordinate
-# 	x = x[...,:-1]
-
-# 	k = K.int_shape(x)[-1]
-
-# 	x_minus_mu = x - mu
-
-# 	uu = K.sum(x_minus_mu ** 2 / K.maximum(sigma, K.epsilon()),
-# 		axis=-1, keepdims=True) # assume sigma inv is diagonal
-# 	uu = K.exp(-0.5 * uu)
-# 	dd = K.sqrt((2 * np.pi) ** k * K.prod(sigma, axis=-1, keepdims=True))
-
-# 	return uu / dd
-
-def log_likelihood(x, mu, sigma):
-
-	# ignore zero t coordinate
-	x = x[...,:-1]
-
-	k = K.int_shape(x)[-1]
-
-	x_minus_mu = x - mu
-
-	sigma = K.maximum(sigma, K.epsilon())
-
-	uu = K.sum(x_minus_mu ** 2 / sigma,
-		axis=-1, keepdims=True) # assume sigma inv is diagonal
-
-	log_sigma_det = K.sum(K.log(sigma), 
-		axis=-1, keepdims=True)
-
-	return - 0.5 * (log_sigma_det + uu + k * K.log(K.constant(2. * np.pi)))
 
 def kullback_leibler_divergence(mus, sigmas):
 
@@ -89,15 +46,6 @@ def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape)
 	return K.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
 
-# from tensorflow.python.framework import function
-
-# @function.Defun(tf.float64, tf.float64)
-# def norm_grad(x, dy):
-#     return dy*(x/(minkowski_norm(x)+1e-12))
-
-# @function.Defun(tf.float64, grad_func=norm_grad, 
-# 	shape_func=lambda op: \
-# 		[op.inputs[0].get_shape().as_list()[:-1] + [1]])
 def minkowski_norm(x):
 	return K.sqrt(K.maximum(
 		minkowski_dot(x, x), 0.))
@@ -122,23 +70,6 @@ def logarithmic_map(p, x):
 
 	return ret
 
-	ret_0 = K.zeros_like(ret)
-
-	# print (ret.shape)
-	# print (tf.where(alpha > 1).shape)
-
-	idx = K.concatenate(
-		[tf.acosh(alpha) < K.epsilon()] * ret.shape[-1], 
-		axis=-1)
-	# idx = K.all(K.abs(p - x) < K.epsilon(), 
-	# 	axis=-1, keepdims=True)
-	# idx = K.concatenate([idx]*ret.shape[-1], -1)
-	# print (idx.shape)
-	out = tf.where(idx, ret_0, ret)
-	# print (out.shape)
-	# raise SystemExit
-	return out
-
 def hyperboloid_initializer(shape, r_max=1e-3):
 
 	def poincare_ball_to_hyperboloid(X, append_t=True):
@@ -148,51 +79,11 @@ def hyperboloid_initializer(shape, r_max=1e-3):
 			x = K.concatenate([x, t], axis=-1)
 		return 1 / (1. - K.sum(K.square(X), axis=-1, keepdims=True)) * x
 
-	# def sphere_uniform_sample(shape, r_max):
-	# 	num_samples, dim = shape
-	# 	X = tf.random_normal(shape=shape, dtype=K.floatx())
-	# 	X_norm = K.sqrt(K.sum(K.square(X), axis=-1, keepdims=True))
-	# 	U = tf.random_uniform(shape=(num_samples, 1), dtype=K.floatx())
-	# 	return r_max * U ** (1./dim) * X / X_norm
-
-	# w = sphere_uniform_sample(shape, r_max=r_max)
 	w = tf.random_uniform(shape=shape, 
 		minval=-r_max, 
 		maxval=r_max, 
 		dtype=K.floatx())
 	return poincare_ball_to_hyperboloid(w)
-
-# class HyperboloidEmbeddingLayer(Layer):
-
-# 	def __init__(self,
-# 		num_nodes,
-# 		embedding_dim,
-# 		**kwargs):
-# 		super(HyperboloidEmbeddingLayer, self).__init__(**kwargs)
-# 		self.num_nodes = num_nodes
-# 		self.embedding_dim = embedding_dim
-
-# 	def build(self, input_shape):
-# 		# Create a trainable weight variable for this layer.
-# 		self.embedding = self.add_weight(name='embedding',
-# 		  shape=(self.num_nodes, self.embedding_dim),
-# 		  initializer=hyperboloid_initializer,
-# 		  trainable=True)
-# 		super(HyperboloidEmbeddingLayer, self).build(input_shape)
-
-# 	def call(self, idx):
-
-# 		embedding = tf.gather(self.embedding, idx)
-
-# 		return embedding
-
-# 	def compute_output_shape(self, input_shape):
-# 		return (input_shape[0], input_shape[1], self.embedding_dim + 1)
-
-# 	def get_config(self):
-# 		base_config = super(HyperboloidEmbeddingLayer, self).get_config()
-# 		base_config.update({"num_nodes": self.num_nodes, "embedding_dim": self.embedding_dim})
-# 		return base_config
 
 class HyperboloidGaussianEmbeddingLayer(Layer):
 
@@ -220,7 +111,7 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 				tf.random_normal, 
 				stddev=1e-3,
 				dtype=K.floatx()),
-			regularizer=l2(1e-4),
+			regularizer=l2(1e-3),
 			trainable=True)
 		super(HyperboloidGaussianEmbeddingLayer, self).build(input_shape)
 
@@ -231,24 +122,14 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 		target_embedding = tf.gather(self.embedding, 
 			idx[:,1:])
 
-		# target_embedding = tf.gather (self.embedding,
-			# idx)
-		# source_embedding = tf.gather (self.embedding,
-			# idx[:,:1])
-
 		to_tangent_space = logarithmic_map(\
 			source_embedding,
 			target_embedding)
-		# to_tangent_space = target_embedding
-		# to_tangent_space = tf.verify_tensor_all_finite(to_tangent_space, 
-			# "fail in to tangent space")
+
 		to_tangent_space_mu_zero = parallel_transport(\
 			source_embedding,
 			self.mu_zero,
 			to_tangent_space)
-		# to_tangent_space_mu_zero = \
-		# 	tf.verify_tensor_all_finite(to_tangent_space_mu_zero, 
-		# 	"fail in to tangent space mu zero")
 
 		sigmas = tf.gather(self.sigmas, idx)
 
@@ -258,26 +139,9 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 			mus=to_tangent_space_mu_zero,
 			sigmas=sigmas)
 
-		# kds = tf.verify_tensor_all_finite(kds, "fail in kds")
-
 		kds = K.squeeze(kds, axis=-1)
 
 		return kds
-
-		# log_probs = log_likelihood(to_tangent_space_mu_zero, 
-		# 	K.zeros((1, 1, self.embedding_dim)),
-		# 	sigmas[:,:1])
-
-		# r = minkowski_norm(to_tangent_space)
-		# r = K.maximum(r, K.epsilon())
-
-		# log_probs = log_probs - K.log(tf.sinh(r)) +\
-		# 	K.log(r)
-
-		# log_probs = K.squeeze(log_probs, -1)
-
-		# return log_probs
-		
 
 	def compute_output_shape(self, input_shape):
 		return (input_shape[0], input_shape[1] - 1, )

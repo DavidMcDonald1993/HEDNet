@@ -50,7 +50,7 @@ def kullback_leibler_divergence_euclidean(mu_sigmas):
 
 	mus, sigmas = mu_sigmas
 
-	dim = mus.shape[1] - 1
+	dim = mus.shape[1] 
 
 	# project to tangent space
 	source_mus = np.expand_dims(mus, axis=1)
@@ -59,22 +59,23 @@ def kullback_leibler_divergence_euclidean(mu_sigmas):
 	source_sigmas = np.expand_dims(sigmas, axis=1)
 	target_sigmas = np.expand_dims(sigmas, axis=0)
 
+	sigma_ratio = target_sigmas / source_sigmas
+
 	x_minus_mu = target_mus - source_mus
 
-	trace = np.sum(target_sigmas / \
-		source_sigmas, 
+	trace = np.sum(sigma_ratio, 
 		axis=-1, keepdims=True)
 
-	uu = np.sum(x_minus_mu ** 2 / \
+	mu_sq_diff = np.sum(x_minus_mu ** 2 / \
 		source_sigmas, 
 		axis=-1, keepdims=True) # assume sigma is diagonal
 
-	log_det = np.sum(np.log(target_sigmas), 
-		axis=-1, keepdims=True) - \
-		np.sum(np.log(source_sigmas), 
+	log_det = np.sum(np.log(sigma_ratio), 
 		axis=-1, keepdims=True)
 
-	return np.squeeze(0.5 * (trace + uu - dim - log_det), axis=-1)
+	return np.squeeze(
+		0.5 * (trace + mu_sq_diff - dim - log_det), 
+		axis=-1)
 
 def kullback_leibler_divergence_hyperboloid(mu_sigmas):
 
@@ -127,7 +128,6 @@ def load_file(filename, header="infer", sep=","):
 	df = df.reindex(idx)
 	return df.values
 
-
 def load_hyperboloid(embedding_directory):
 	files = sorted(glob.iglob(os.path.join(embedding_directory, 
 		"*_embedding.csv.gz")))
@@ -146,7 +146,7 @@ def load_poincare(embedding_directory):
 
 def load_euclidean(embedding_directory):
 	files = sorted(glob.iglob(os.path.join(embedding_directory, 
-		"*_embedding.csv.gz")))
+		"*.csv.gz")))
 	embedding_filename = files[-1]
 	embedding = load_file(embedding_filename, header=None, sep=" ")
 	return embedding

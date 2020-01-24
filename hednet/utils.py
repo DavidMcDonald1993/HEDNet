@@ -217,18 +217,11 @@ def determine_positive_and_negative_samples(graph, args):
 						np.sum(positive_samples[:k+1], axis=0).nonzero()
 					] = 0
 				assert np.allclose(neg_samples.diagonal(), 0)
-				# neg_samples = np.zeros((N, N)) 
-				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
-				# for k_ in range(len(positive_samples)):
-				# 	if k_ <= k:
-				# 		p = 0
-				# 	else:
-				# 		p = np.exp(-k_)
-				# 	neg_samples[positive_samples[k_].nonzero()] = p
 			else:
 				neg_samples = np.zeros((N, N))
-				neg_samples[positive_samples[k+1].nonzero()] = 1
-				# neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
+				# neg_samples[positive_samples[k+1].nonzero()] = 1
+				neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
+			
 			neg_samples = neg_samples.flatten()
 			neg_samples /= neg_samples.sum()
 			neg_samples = neg_samples.cumsum(axis=-1)

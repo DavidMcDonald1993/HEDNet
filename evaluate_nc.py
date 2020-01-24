@@ -181,7 +181,7 @@ def evaluate_node_classification(embedding,
 
 def parse_args():
 
-	parser = argparse.ArgumentParser(description='Load Hyperboloid Embeddings and evaluate node classification')
+	parser = argparse.ArgumentParser(description='Load Embeddings and evaluate node classification')
 	
 	parser.add_argument("--edgelist", dest="edgelist", type=str, 
 		help="edgelist to load.")

@@ -12,7 +12,7 @@ def main():
 
     N = 1000
 
-    for seed in range(100):
+    for seed in range(5):
         g = nx.DiGraph(nx.scale_free_graph(N, seed=seed))
         print ("seed", seed, "number of nodes", len(g),
             "number of edges", len(g.edges))

@@ -10,10 +10,8 @@ import argparse
 from hednet.utils import load_data
 from remove_utils import sample_non_edges, write_edgelist_to_file
 
-
 def split_edges(graph, 
 	edges, 
-	# non_edges, 
 	seed,
 	val_split=0.05, 
 	test_split=0.10, 
@@ -134,18 +132,17 @@ def main():
 
 	edges = list(graph.edges())
 	print ("enumerated edges")
-	# non_edges = list(nx.non_edges(graph))
-	# print ("enumerated non edges")
 
 	(_, (val_edges, val_non_edges), 
 	(test_edges, test_non_edges)) = split_edges(graph, 
 		edges, 
-		# non_edges, 
 		seed, 
 		val_split=0)
 
-	print ("number of val edges", len(val_edges), "number of val non edges", len(val_edges))
-	print ("number of test edges", len(test_edges), "number of test non edges", len(test_edges))
+	print ("number of val edges", len(val_edges), 
+		"number of val non edges", len(val_edges))
+	print ("number of test edges", len(test_edges), 
+		"number of test non edges", len(test_edges))
 
 	graph.remove_edges_from(val_edges + test_edges) # remove val and test edges
 	graph.add_edges_from(((u, u, {"weight": 0}) for u in graph.nodes())) # ensure that every node appears at least once by adding self loops

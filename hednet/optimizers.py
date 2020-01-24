@@ -26,26 +26,19 @@ def normalise_to_hyperboloid(x):
 	x = x[:,:-1]
 	t = K.sqrt(K.sum(K.square(x), axis=-1, keepdims=True) + 1)
 	return K.concatenate([x, t], axis=-1)
-	# return x / K.sqrt( - minkowski_dot(x, x) )
-	# return x / K.maximum( \
-	# 	K.sqrt( -minkowski_dot(x, x) )  ,
-	# 	K.epsilon())
 
 def exponential_mapping( p, x ):
 
-	# p = tf.verify_tensor_all_finite(p, "fail in p")
 
 	# minkowski unit norm
 	r = minkowski_norm(x)
-	# r = tf.verify_tensor_all_finite(r, "fail in r")
 
 	x = x / K.maximum(r, K.epsilon())
 
-	# x = tf.verify_tensor_all_finite(x, "fail in mink norm")
 
 	####################################################
 
-	# r = K.minimum(r, 1e-0)
+	r = K.minimum(r, 1e-0)
 
 	# idx = (r > 1e-7)[:,0]
 
@@ -62,20 +55,14 @@ def exponential_mapping( p, x ):
 	# r = K.minimum(r, 1e-0)
 
 	cosh_r = tf.cosh(r)
-	# cosh_r = tf.verify_tensor_all_finite(cosh_r, 
-	# 	"fail in cosh r")
 	exp_map_p = cosh_r * p
-
-	# exp_map_p = tf.verify_tensor_all_finite(exp_map_p, 
-		# "fail in exp_map_p")
 
 	non_zero_norm = tf.gather(r, idx)
 
 	z = tf.gather(x, idx)
 
 	updates = tf.sinh(non_zero_norm) * z
-	# updates = tf.verify_tensor_all_finite(updates, 
-	# 	"fail in updates")
+
 	dense_shape = tf.shape(p, out_type=tf.int64)
 	exp_map_x = tf.scatter_nd(indices=idx[:,None],
 		updates=updates, 
@@ -87,9 +74,7 @@ def exponential_mapping( p, x ):
 	# z = x / K.maximum(r, K.epsilon()) # unit norm
 	# exp_map = tf.cosh(r) * p + tf.sinh(r) * x
 	#####################################################
-	# exp_map = tf.verify_tensor_all_finite(exp_map, "error before")
 	exp_map = normalise_to_hyperboloid(exp_map) # account for floating point imprecision
-	# exp_map = tf.verify_tensor_all_finite(exp_map, "error after")
 
 	return exp_map
 

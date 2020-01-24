@@ -11,7 +11,7 @@ from evaluation_utils import load_embedding, compute_scores, evaluate_rank_AUROC
 
 def parse_args():
 
-	parser = argparse.ArgumentParser(description='Load Hyperboloid Embeddings and evaluate link prediction')
+	parser = argparse.ArgumentParser(description='Load Embeddings and evaluate link prediction')
 	
 	parser.add_argument("--edgelist", dest="edgelist", type=str, 
 		help="edgelist to load.")
@@ -33,15 +33,11 @@ def parse_args():
 	parser.add_argument("--seed", type=int, default=0)
 
 	parser.add_argument("--dist_fn", dest="dist_fn", type=str,
-		choices=["poincare", "hyperboloid", "euclidean", "kle", "klh"])
+		choices=["poincare", "hyperboloid", "euclidean", 
+		"kle", "klh", "st"])
 
 	return parser.parse_args()
 
-def elu(x, alpha=1.):
-	x = x.copy()
-	mask = x <= 0
-	x[mask] = alpha * (np.exp(x[mask]) - 1)
-	return x
 
 def main():
 

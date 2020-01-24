@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import re
 import glob
 import numpy as np
 import pandas as pd
@@ -47,10 +48,16 @@ class Checkpointer(Callback):
 		self.save_model()
 
 	def remove_old_models(self):
-		for old_model_path in sorted(
-			glob.iglob(os.path.join(self.embedding_directory, "*"))):
+		embedding_directory = self.embedding_directory
+		# for old_model_path in sorted(
+		# 	glob.iglob(os.path.join(self.embedding_directory, 
+		# 		"[0-9]+_model.h5"))):
+		for old_model_path in filter(
+			re.compile("[0-9]+\_model\.h5").match, 
+			os.listdir(embedding_directory)):
 			print ("removing model: {}".format(old_model_path))
-			os.remove(old_model_path)
+			os.remove(os.path.join(embedding_directory, 
+				old_model_path))
 
 	def save_model(self):
 
@@ -59,27 +66,34 @@ class Checkpointer(Callback):
 		self.model.save_weights(weights_filename)
 		print ("saving weights to", weights_filename)
 
-		embedding_filename = os.path.join(self.embedding_directory, 
-			"{:05d}_embedding.csv.gz".format(self.epoch))
-		embedding = self.model.get_weights()[0]
-		assert not np.any(np.isnan(embedding))
-		assert not np.any(np.isinf(embedding))
-		assert (embedding[:,-1] > 0).all(), embedding[:,-1]
-		assert np.allclose(minkowski_dot(embedding, embedding), -1)
+		weights = self.model.get_weights()
 
-		print ("saving current embedding to {}".\
-			format(embedding_filename))
-		embedding_df = pd.DataFrame(embedding, index=self.nodes)
-		embedding_df.to_csv(embedding_filename, compression="gzip")
+		# embedding_filename = os.path.join(self.embedding_directory, 
+		# 	"{:05d}_embedding.csv.gz".format(self.epoch))
+		embedding = weights[0]
+		embedding = hyperboloid_to_poincare_ball(embedding)
+		ranks = np.linalg.norm(embedding, axis=-1)
+		print ("embedding", ranks.min(), ranks.mean(),
+			ranks.max() )
+		# assert not np.any(np.isnan(embedding))
+		# assert not np.any(np.isinf(embedding))
+		# assert (embedding[:,-1] > 0).all(), embedding[:,-1]
+		# assert np.allclose(minkowski_dot(embedding, embedding), -1)
 
-		variance_filename = os.path.join(self.embedding_directory, 
-			"{:05d}_variance.csv.gz".format(self.epoch))
-		variance = self.model.get_weights()[1]
+		# print ("saving current embedding to {}".\
+		# 	format(embedding_filename))
+		# embedding_df = pd.DataFrame(embedding, index=self.nodes)
+		# embedding_df.to_csv(embedding_filename, compression="gzip")
 
+		# variance_filename = os.path.join(self.embedding_directory, 
+		# 	"{:05d}_variance.csv.gz".format(self.epoch))
+		variance = weights[1]
 		variance = elu(variance) + 1
+		print ("variance", variance.min(),
+			variance.mean(), variance.max())
 
-		print ("saving current variance to {}".\
-			format(variance_filename))
-		variance_df = pd.DataFrame(variance, index=self.nodes)
-		variance_df.to_csv(variance_filename, compression="gzip")
-		print()
+		# print ("saving current variance to {}".\
+		# 	format(variance_filename))
+		# variance_df = pd.DataFrame(variance, index=self.nodes)
+		# variance_df.to_csv(variance_filename, compression="gzip")
+		# print()

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import re
 # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import argparse
 import random
@@ -9,7 +10,7 @@ import pandas as pd
 import glob
 
 from keras import backend as K
-from keras.callbacks import TerminateOnNaN, EarlyStopping
+from keras.callbacks import ModelCheckpoint, TerminateOnNaN, EarlyStopping
 
 import tensorflow as tf
 
@@ -23,7 +24,7 @@ from hednet.optimizers import ExponentialMappingOptimizer
 from hednet.losses import asym_hyperbolic_loss
 
 K.set_floatx("float64")
-# K.set_epsilon(np.float64(1e-15))
+K.set_epsilon(np.float64(1e-15))
 
 np.set_printoptions(suppress=True)
 
@@ -42,16 +43,24 @@ config.allow_soft_placement=True
 # Create a session with the above options specified.
 K.tensorflow_backend.set_session(tf.Session(config=config))
 
-def load_weights(model, args):
+def load_weights(model, embedding_directory):
 
-	previous_models = sorted(glob.glob(os.path.join(args.embedding_path, "*.h5")))
+	# previous_models = sorted(glob.glob(
+	# 	os.path.join(args.embedding_path, "*.h5")))
+	previous_models = sorted(filter(
+		re.compile("[0-9]+\_model\.h5").match, 
+		os.listdir(embedding_directory)
+	))
 	if len(previous_models) > 0:
 		weight_file = previous_models[-1]
-		initial_epoch = int(weight_file.split("/")[-1].split("_")[0])
+		initial_epoch = int(weight_file.split("_")[0])
 		print ("previous models found in directory -- loading from file {} and resuming from epoch {}".format(weight_file, initial_epoch))
-		model.load_weights(weight_file)
+		model.load_weights(
+			os.path.join(embedding_directory, 
+			weight_file))
 	else:
-		print ("no previous model found in {}".format(args.embedding_path))
+		print ("no previous model found in {}".\
+			format(embedding_directory))
 		initial_epoch = 0
 
 	return model, initial_epoch
@@ -141,16 +150,24 @@ def main():
 		args.num_negative_samples, 
 		args.batch_size,
 		lr=args.lr)
-	model, initial_epoch = load_weights(model, args)
+	model, initial_epoch = load_weights(model, 
+		args.embedding_path)
 
 	model.summary()
 
+	best_model_path = os.path.join(args.embedding_path, 
+			"best_model.h5")
 	callbacks = [
 		TerminateOnNaN(),
-		EarlyStopping(monitor="loss", 
-			patience=args.patience, 
-			mode="min",
-			verbose=True),
+		# EarlyStopping(monitor="loss", 
+		# 	patience=args.patience, 
+		# 	mode="min",
+		# 	verbose=True),
+		ModelCheckpoint(best_model_path,
+			save_best_only=True,
+			save_weights_only=True,
+			monitor="loss",
+			mode="min"),
 		Checkpointer(epoch=initial_epoch, 
 			nodes=sorted(graph.nodes()), 
 			# history=args.patience,
@@ -182,12 +199,16 @@ def main():
 	)
 
 	print ("Training complete")
+	print ("Loading best model from", best_model_path)
+	model.load_weights(best_model_path)
 
 	print ("saving final embedding")
 
+	weights = model.get_weights()
+
 	embedding_filename = os.path.join(args.embedding_path, 
 			"final_embedding.csv.gz")
-	embedding = model.get_weights()[0]
+	embedding = weights[0]
 	embedding_df = pd.DataFrame(embedding, index=sorted(graph.nodes()))
 	embedding_df.to_csv(embedding_filename)
 
@@ -195,7 +216,7 @@ def main():
 
 	variance_filename = os.path.join(args.embedding_path, 
 		"final_variance.csv.gz")
-	variance = model.get_weights()[1]
+	variance = weights[1]
 
 	variance = elu(variance) + 1
 
