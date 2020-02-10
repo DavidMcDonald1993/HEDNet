@@ -10,7 +10,7 @@
 
 e=10000
 
-datasets=({cora_ml,citeseer,pubmed,wiki_vote,email})
+datasets=(cora_ml citeseer pubmed wiki_vote email)
 dims=(2 5 10 25 50)
 seeds=({0..29})
 exps=(lp_experiment recon_experiment)
