@@ -38,8 +38,8 @@ edgelist=${data_dir}/edgelist.tsv
 output=edgelists/${dataset}
 
 test_results=$(printf \
-    "test_results/${dataset}/nofeats/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
-embedding_dir=../graph2gauss/embeddings/${dataset}/${exp}
+    "test_results/${dataset}/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
+embedding_dir=../graph2gauss/embeddings/${dataset}/nofeats/${exp}
 embedding_dir=$(printf "${embedding_dir}/scale=${scale}/k=${k}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
 echo ${test_results}
