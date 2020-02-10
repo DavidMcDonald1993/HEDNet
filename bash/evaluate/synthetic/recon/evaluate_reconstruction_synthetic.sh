@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=HEDNETevaluateRECON
-#SBATCH --output=HEDNETevaluateRECON_%A_%a.out
-#SBATCH --error=HEDNETevaluateRECON_%A_%a.err
+#SBATCH --job-name=HEDNETSYNRECON
+#SBATCH --output=HEDNETSYNRECON_%A_%a.out
+#SBATCH --error=HEDNETSYNRECON_%A_%a.err
 #SBATCH --array=0-149
 #SBATCH --time=20:00
 #SBATCH --ntasks=1
@@ -10,7 +10,6 @@
 
 datasets=({00..29})
 dims=(2 5 10 25 50)
-# seeds=({0..29})
 seeds=(0)
 exp=recon_experiment
 
@@ -35,9 +34,10 @@ test_results=$(printf \
 embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
+echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --dist_fn klh \
-    --embedding ${embedding_dir} --seed ${dataset} \
+    --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})
 echo ${args}
 

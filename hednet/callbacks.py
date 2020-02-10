@@ -72,8 +72,9 @@ class Checkpointer(Callback):
 		# 	"{:05d}_embedding.csv.gz".format(self.epoch))
 		embedding = weights[0]
 		embedding = hyperboloid_to_poincare_ball(embedding)
+		print ("embedding", np.linalg.norm(embedding.mean(0)))
 		ranks = np.linalg.norm(embedding, axis=-1)
-		print ("embedding", ranks.min(), ranks.mean(),
+		print ("ranks", ranks.min(), ranks.mean(),
 			ranks.max() )
 		# assert not np.any(np.isnan(embedding))
 		# assert not np.any(np.isinf(embedding))

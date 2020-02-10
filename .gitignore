@@ -13,3 +13,4 @@ notes
 datasets/simple_scale_free
 jupyter_notebooks
 hednet/__pycache__
+__pycache__

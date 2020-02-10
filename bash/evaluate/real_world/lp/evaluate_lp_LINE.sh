@@ -1,18 +1,18 @@
 #!/bin/bash
 
-#SBATCH --job-name=ATPSYNRECON
-#SBATCH --output=ATPSYNRECON_%A_%a.out
-#SBATCH --error=ATPSYNRECON_%A_%a.err
-#SBATCH --array=0-449
-#SBATCH --time=20:00
+#SBATCH --job-name=LINELP
+#SBATCH --output=LINELP_%A_%a.out
+#SBATCH --error=LINELP_%A_%a.err
+#SBATCH --array=0-749
+#SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem=5G
+#SBATCH --mem=25G
 
-datasets=({00..29})
+datasets=(cora_ml citeseer pubmed email wiki_vote)
 dims=(2 5 10 25 50)
-seeds=(0)
-methods=(linear ln harmonic)
-exp=recon_experiment
+seeds=({00..29})
+methods=(line)
+exp=lp_experiment
 
 num_datasets=${#datasets[@]}
 num_dims=${#dims[@]}
@@ -29,16 +29,20 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
-data_dir=datasets/synthetic_scale_free/${dataset}
+data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv
-embedding_dir=$(printf "../atp/embeddings/synthetic_scale_free/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
+embedding_dir=../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/${seed}
+
+output=edgelists/${dataset}
 
 test_results=$(printf \
-    "test_results/synthetic_scale_free/${exp}/dim=%03d/${method}/" ${dim})
+    "test_results/${dataset}/${exp}/dim=%03d/${method}/" ${dim})
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --dist_fn st \
+
+args=$(echo --edgelist ${edgelist} --output ${output} \
+    --dist_fn euclidean \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})
 echo ${args}
@@ -47,4 +51,4 @@ module purge
 module load bluebear
 module load apps/python3/3.5.2
 
-python evaluate_reconstruction.py ${args}
+python evaluate_lp.py ${args}

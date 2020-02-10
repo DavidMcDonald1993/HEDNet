@@ -159,10 +159,10 @@ def main():
 			"best_model.h5")
 	callbacks = [
 		TerminateOnNaN(),
-		# EarlyStopping(monitor="loss", 
-		# 	patience=args.patience, 
-		# 	mode="min",
-		# 	verbose=True),
+		EarlyStopping(monitor="loss", 
+			patience=args.patience, 
+			mode="min",
+			verbose=True),
 		ModelCheckpoint(best_model_path,
 			save_best_only=True,
 			save_weights_only=True,

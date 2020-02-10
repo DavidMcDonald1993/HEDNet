@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --job-name=G2GevaluateLP
-#SBATCH --output=G2GevaluateLP_%A_%a.out
-#SBATCH --error=G2GevaluateLP_%A_%a.err
+#SBATCH --job-name=G2GSYNLP
+#SBATCH --output=G2GSYNLP_%A_%a.out
+#SBATCH --error=G2GSYNLP_%A_%a.err
 #SBATCH --array=0-749
-#SBATCH --time=05:00
+#SBATCH --time=20:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
@@ -31,7 +31,7 @@ scale=${scales[$scale_id]}
 dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
-k=${ks[k_id]}
+k=${ks[$k_id]}
 
 data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
@@ -43,10 +43,12 @@ test_results=$(printf \
 embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d" ${seed} ${dim})
 echo ${embedding_dir}
+echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --output ${output} --dist_fn kle \
+args=$(echo --edgelist ${edgelist} --output ${output} \
+    --dist_fn kle \
     --embedding ${embedding_dir} --seed ${dataset} \
-    --test-results-dir ${test_results})
+    --test-results-dir ${seed})
 echo ${args}
 
 module purge

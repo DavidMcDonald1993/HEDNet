@@ -31,8 +31,8 @@ def kullback_leibler_divergence(mus, sigmas):
 		axis=-1, keepdims=True)
 
 	# mu_sq_diff = K.sum(K.square(target_mus - source_mus) / \
-		# source_sigma,
-		# axis=-1, keepdims=True) # assume sigma is diagonal
+	# 	source_sigma,
+	# 	axis=-1, keepdims=True) # assume sigma is diagonal
 	mu_sq_diff = K.sum(K.square(mus) / \
 		source_sigma,
 		axis=-1, keepdims=True) # assume sigma is diagonal
@@ -52,7 +52,7 @@ def minkowski_norm(x):
 
 def parallel_transport(p, q, x):
 	alpha = -minkowski_dot(p, q)
-	# alpha = K.maximum(alpha, 1+K.epsilon())
+	alpha = K.maximum(alpha, 1+K.epsilon())
 
 	return x + minkowski_dot(q - alpha * p, x) * (p + q)  / \
 		K.maximum(alpha + 1, K.epsilon())
@@ -62,7 +62,7 @@ def logarithmic_map(p, x):
 
 	alpha = -minkowski_dot(p, x)# + K.epsilon()
 
-	# alpha_ = K.maximum(alpha, 1 + K.epsilon())
+	alpha = K.maximum(alpha, 1 + K.epsilon())
 
 	ret = tf.acosh(alpha) * (x - alpha * p) / \
 		K.maximum(K.sqrt(K.maximum(alpha ** 2 - 1., 0.)),
@@ -121,6 +121,9 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 			idx[:,:1])
 		target_embedding = tf.gather(self.embedding, 
 			idx[:,1:])
+
+		# target_embedding = tf.gather(self.embedding, 
+		# 	idx)
 
 		to_tangent_space = logarithmic_map(\
 			source_embedding,

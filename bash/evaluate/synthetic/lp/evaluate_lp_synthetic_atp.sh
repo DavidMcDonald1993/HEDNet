@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --job-name=ATPSYNRECON
-#SBATCH --output=ATPSYNRECON_%A_%a.out
-#SBATCH --error=ATPSYNRECON_%A_%a.err
+#SBATCH --job-name=ATPSYNLP
+#SBATCH --output=ATPSYNLP_%A_%a.out
+#SBATCH --error=ATPSYNLP_%A_%a.err
 #SBATCH --array=0-449
-#SBATCH --time=20:00
+#SBATCH --time=30:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
@@ -12,7 +12,7 @@ datasets=({00..29})
 dims=(2 5 10 25 50)
 seeds=(0)
 methods=(linear ln harmonic)
-exp=recon_experiment
+exp=lp_experiment
 
 num_datasets=${#datasets[@]}
 num_dims=${#dims[@]}
@@ -33,12 +33,14 @@ data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
 embedding_dir=$(printf "../atp/embeddings/synthetic_scale_free/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
 
+output=edgelists/synthetic_scale_free/${dataset}
+
 test_results=$(printf \
     "test_results/synthetic_scale_free/${exp}/dim=%03d/${method}/" ${dim})
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --dist_fn st \
+args=$(echo --edgelist ${edgelist} --output ${output} --dist_fn st \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})
 echo ${args}
@@ -47,4 +49,4 @@ module purge
 module load bluebear
 module load apps/python3/3.5.2
 
-python evaluate_reconstruction.py ${args}
+python evaluate_lp.py ${args}

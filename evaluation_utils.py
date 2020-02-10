@@ -15,9 +15,9 @@ def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
 	return np.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
 
-def hyperbolic_distance_hyperboloid(u):
-	u = np.expand_dims(u, axis=1)
-	v = np.expand_dims(u, axis=0)
+def hyperbolic_distance_hyperboloid(x):
+	u = np.expand_dims(x, axis=1)
+	v = np.expand_dims(x, axis=0)
 	mink_dp = -minkowski_dot(u, v)
 	mink_dp = np.maximum(mink_dp - 1, 1e-15)
 	return np.squeeze(np.arccosh(1 + mink_dp), axis=-1)
@@ -122,6 +122,7 @@ def kullback_leibler_divergence_hyperboloid(mu_sigmas):
 	)
 
 def load_file(filename, header="infer", sep=","):
+	print ("reading from", filename)
 	df = pd.read_csv(filename, index_col=0, 
 		header=header, sep=sep)
 	idx = sorted(df.index)
@@ -244,20 +245,35 @@ def evaluate_precision_at_k(scores,
 
 def evaluate_mean_average_precision(scores, 
 	edgelist, 
+	graph_edges=None
 	):
+	N, _  = scores.shape
 	edgelist_dict = {}
 	for u, v in edgelist:
 		if u not in edgelist_dict:
 			edgelist_dict.update({u: []})
 		edgelist_dict[u].append(v)
+	if graph_edges:
+		graph_edgelist_dict = {}
+		for u, v in graph_edges:
+			if u not in graph_edgelist_dict:
+				graph_edgelist_dict.update({u: []})
+			if u in edgelist_dict and v not in edgelist_dict[u]:
+				graph_edgelist_dict[u].append(v)
 
 	precisions = []
 	for u in edgelist_dict:
 		scores_ = scores[u]
 		true_neighbours = edgelist_dict[u]
 		labels = np.array([n in true_neighbours 
-			for n in range(len(scores))])
-		mask = np.array([n!=u for n in range(len(scores))])
+			for n in range(N)])
+		mask = np.array([n!=u
+			for n in range(N)]) # ignore self loops
+		if graph_edges and u in graph_edgelist_dict:
+			mask *= np.array([n not in graph_edgelist_dict[u]
+				for n in range(N)]) # ignore training edges
+			assert mask.sum() > 0
+			assert labels[mask].sum() > 0
 		s = average_precision_score(labels[mask], scores_[mask])
 		precisions.append(s)
 

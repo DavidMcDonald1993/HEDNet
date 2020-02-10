@@ -1,16 +1,16 @@
 #!/bin/bash
 
-#SBATCH --job-name=ATPSYNRECON
-#SBATCH --output=ATPSYNRECON_%A_%a.out
-#SBATCH --error=ATPSYNRECON_%A_%a.err
-#SBATCH --array=0-449
-#SBATCH --time=20:00
+#SBATCH --job-name=ATPRECON
+#SBATCH --output=ATPRECON_%A_%a.out
+#SBATCH --error=ATPRECON_%A_%a.err
+#SBATCH --array=0-2249
+#SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem=5G
+#SBATCH --mem=25G
 
-datasets=({00..29})
+datasets=(cora_ml citeseer pubmed email wiki_vote)
 dims=(2 5 10 25 50)
-seeds=(0)
+seeds=({00..29})
 methods=(linear ln harmonic)
 exp=recon_experiment
 
@@ -29,12 +29,12 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
-data_dir=datasets/synthetic_scale_free/${dataset}
+data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv
-embedding_dir=$(printf "../atp/embeddings/synthetic_scale_free/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
+embedding_dir=$(printf "../atp/embeddings/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
 
 test_results=$(printf \
-    "test_results/synthetic_scale_free/${exp}/dim=%03d/${method}/" ${dim})
+    "test_results/${dataset}/${exp}/dim=%03d/${method}/" ${dim})
 echo ${embedding_dir}
 echo ${test_results}
 

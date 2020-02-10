@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=G2GevaluateRECON
-#SBATCH --output=G2GevaluateRECON_%A_%a.out
-#SBATCH --error=G2GevaluateRECON_%A_%a.err
+#SBATCH --job-name=G2GSYNRECON
+#SBATCH --output=G2GSYNRECON_%A_%a.out
+#SBATCH --error=G2GSYNRECON_%A_%a.err
 #SBATCH --array=0-749
 #SBATCH --time=20:00
 #SBATCH --ntasks=1
@@ -31,7 +31,7 @@ scale=${scales[$scale_id]}
 dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
-k=${ks[k_id]}
+k=${ks[$k_id]}
 
 data_dir=datasets/synthetic_scale_free/${dataset}
 edgelist=${data_dir}/edgelist.tsv
@@ -42,9 +42,10 @@ test_results=$(printf \
 embedding_dir=$(printf \
     "${embedding_dir}/seed=%03d/dim=%03d/" ${seed} ${dim})
 echo ${embedding_dir}
+echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --dist_fn kle \
-    --embedding ${embedding_dir} --seed ${dataset} \
+    --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})
 echo ${args}
 
