@@ -51,7 +51,7 @@ def load_data(args):
 
 		print ("loading labels from {}".format(labels_filename))
 
-		if labels_filename.endswith(".csv"):
+		if labels_filename.endswith(".csv") or labels_filename.endswith(".csv.gz"):
 			labels = pd.read_csv(labels_filename, index_col=0, sep=",")
 			labels = labels.reindex(sorted(graph.nodes())).values.astype(int)#.flatten()
 			assert len(labels.shape) == 2

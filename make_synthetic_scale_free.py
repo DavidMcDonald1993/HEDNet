@@ -12,7 +12,7 @@ def main():
 
     N = 1000
 
-    for seed in range(5):
+    for seed in range(30):
         g = nx.DiGraph(nx.scale_free_graph(N, seed=seed))
         print ("seed", seed, "number of nodes", len(g),
             "number of edges", len(g.edges))
@@ -20,7 +20,7 @@ def main():
         d = os.path.join(output_dir, "{:02d}".format(seed))
         if not os.path.exists(d):
             os.makedirs(d, exist_ok=True)
-        nx.write_edgelist(g, os.path.join(d, "edgelist.tsv"), 
+        nx.write_edgelist(g, os.path.join(d, "edgelist.tsv.gz"), 
             delimiter="\t", data=["weight"])
 
 
