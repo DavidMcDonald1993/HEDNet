@@ -30,7 +30,7 @@ seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
 data_dir=datasets/${dataset}
-edgelist=${data_dir}/edgelist.tsv
+edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=$(printf "../atp/embeddings/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
 
 output=edgelists/${dataset}

@@ -30,7 +30,7 @@ seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
 data_dir=datasets/${dataset}
-edgelist=${data_dir}/edgelist.tsv
+edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/${seed}
 
 test_results=$(printf \

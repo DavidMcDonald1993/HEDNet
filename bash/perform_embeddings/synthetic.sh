@@ -37,7 +37,7 @@ if [ $exp == "lp_experiment" ]
 then 
     edgelist=$(printf edgelists/${dataset}/seed=%03d/training_edges/edgelist.tsv ${seed})
 else 
-    edgelist=${data_dir}/edgelist.tsv
+    edgelist=${data_dir}/edgelist.tsv.gz
 fi
 echo edgelist is $edgelist
 embedding_dir=embeddings/${dataset}/$exp

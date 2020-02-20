@@ -34,7 +34,7 @@ seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
 
 data_dir=datasets/synthetic_scale_free/${dataset}
-edgelist=${data_dir}/edgelist.tsv
+edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=../graph2gauss/embeddings/synthetic_scale_free/${dataset}/${exp}/scale=${scale}/k=${k}
 output=edgelists/synthetic_scale_free/${dataset}
 

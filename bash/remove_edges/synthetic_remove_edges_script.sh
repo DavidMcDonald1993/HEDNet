@@ -20,7 +20,7 @@ seed_id=$((SLURM_ARRAY_TASK_ID % (num_seeds) ))
 dataset=${datasets[$dataset_id]}
 seed=${seeds[$seed_id]}
 
-edgelist=datasets/synthetic_scale_free/${dataset}/edgelist.tsv
+edgelist=datasets/synthetic_scale_free/${dataset}/edgelist.tsv.gz
 output=edgelists/synthetic_scale_free/${dataset}
 
 edgelist_f=$(printf "${output}/seed=%03d/training_edges/edgelist.tsv" ${seed} )
