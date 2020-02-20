@@ -11,6 +11,9 @@ embeddings
 edgelists
 notes
 datasets/simple_scale_free
+datasets/synthetic_scale_free
+datasets/*/labels*
+datasets/*/feats*
 jupyter_notebooks
 hednet/__pycache__
 __pycache__
