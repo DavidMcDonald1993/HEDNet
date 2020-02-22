@@ -17,3 +17,4 @@ datasets/*/feats*
 jupyter_notebooks
 hednet/__pycache__
 __pycache__
+evaluate_nc.py

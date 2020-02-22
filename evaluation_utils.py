@@ -6,27 +6,30 @@ import pandas as pd
 import glob
 
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
-from sklearn.metrics.pairwise import euclidean_distances
+# from sklearn.metrics.pairwise import euclidean_distances
 
 import functools
 import fcntl
+
+def euclidean_distance(u, v):
+	return np.linag.norm(u - v, axis=-1)
 
 def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
 	return np.sum(x[...,:-1] * y[...,:-1], axis=-1, keepdims=True) - x[...,-1:] * y[...,-1:]
 
-def hyperbolic_distance_hyperboloid(x):
-	u = np.expand_dims(x, axis=1)
-	v = np.expand_dims(x, axis=0)
+def hyperbolic_distance_hyperboloid(u, v):
 	mink_dp = -minkowski_dot(u, v)
 	mink_dp = np.maximum(mink_dp - 1, 1e-15)
 	return np.squeeze(np.arccosh(1 + mink_dp), axis=-1)
 
-def hyperbolic_distance_poincare(X):
-	norm_X = np.linalg.norm(X, keepdims=True, axis=-1)
-	norm_X = np.minimum(norm_X, np.nextafter(1,0, ))
-	uu = euclidean_distances(X) ** 2
-	dd = (1 - norm_X**2) * (1 - norm_X**2).T
+def hyperbolic_distance_poincare(u, v):
+	norm_u = np.linalg.norm(u, keepdims=True, axis=-1)
+	norm_u = np.minimum(norm_u, np.nextafter(1,0, ))
+	norm_v = np.linalg.norm(v, keepdims=True, axis=-1)
+	norm_v = np.minimum(norm_v, np.nextafter(1,0, ))
+	uu = euclidean_distances(u - v) ** 2
+	dd = (1 - norm_u**2) * (1 - norm_v**2)
 	return np.arccosh(1 + 2 * uu / dd)
 
 def logarithmic_map(p, x):
@@ -46,18 +49,15 @@ def parallel_transport(p, q, x):
 		(alpha + 1) 
 
 
-def kullback_leibler_divergence_euclidean(mu_sigmas):
+def kullback_leibler_divergence_euclidean(
+	source_mus,
+	source_sigmas,
+	target_mus,
+	target_sigmas):
 
-	mus, sigmas = mu_sigmas
-
-	dim = mus.shape[1] 
+	dim = source_mus.shape[1] 
 
 	# project to tangent space
-	source_mus = np.expand_dims(mus, axis=1)
-	target_mus = np.expand_dims(mus, axis=0)
-
-	source_sigmas = np.expand_dims(sigmas, axis=1)
-	target_sigmas = np.expand_dims(sigmas, axis=0)
 
 	sigma_ratio = target_sigmas / source_sigmas
 
@@ -77,15 +77,12 @@ def kullback_leibler_divergence_euclidean(mu_sigmas):
 		0.5 * (trace + mu_sq_diff - dim - log_det), 
 		axis=-1)
 
-def kullback_leibler_divergence_hyperboloid(mu_sigmas):
+def kullback_leibler_divergence_hyperboloid(source_mus,
+	source_sigmas,
+	target_mus,
+	target_sigmas):
 
-	mus, sigmas = mu_sigmas
-
-	dim = mus.shape[1] - 1
-
-	# project to tangent space
-	source_mus = np.expand_dims(mus, axis=1)
-	target_mus = np.expand_dims(mus, axis=0)
+	dim = source_mus.shape[1] - 1
 
 	to_tangent_space = logarithmic_map(source_mus, 
 		target_mus)
@@ -97,9 +94,6 @@ def kullback_leibler_divergence_hyperboloid(mu_sigmas):
 	to_tangent_space_mu_zero = parallel_transport(source_mus,
 		mu_zero, 
 		to_tangent_space)
-
-	source_sigmas = np.expand_dims(sigmas, axis=1)
-	target_sigmas = np.expand_dims(sigmas, axis=0)
 
 	# mu is zero vector
 	# ignore zero t coordinate
@@ -114,7 +108,8 @@ def kullback_leibler_divergence_hyperboloid(mu_sigmas):
 		source_sigmas,
 		axis=-1, keepdims=True) # assume sigma inv is diagonal
 
-	log_det = np.sum(np.log(sigma_ratio), axis=-1, keepdims=True)
+	log_det = np.sum(np.log(sigma_ratio), 
+		axis=-1, keepdims=True)
 
 	return np.squeeze(
 		0.5 * (trace_fac + mu_sq_diff - dim - log_det), 
@@ -205,20 +200,26 @@ def load_embedding(dist_fn, embedding_directory):
 		source, target = load_st(embedding_directory)
 		return source, target
 
-def compute_scores(embedding, dist_fn):
+def compute_scores(u, v, dist_fn):
 
 	if dist_fn == "hyperboloid":
-		scores = -hyperbolic_distance_hyperboloid(embedding)
+		scores = -hyperbolic_distance_hyperboloid(u, v)
 	elif dist_fn == "poincare":
-		scores = -hyperbolic_distance_poincare(embedding)
+		scores = -hyperbolic_distance_poincare(u, v)
 	elif dist_fn == "euclidean":
-		scores = -euclidean_distances(embedding)
+		scores = -euclidean_distance(u, v)
 	elif dist_fn == "klh":
-		scores = -kullback_leibler_divergence_hyperboloid(embedding)
+		assert isinstance(u, tuple)
+		assert isinstance(v, tuple)
+		scores = -kullback_leibler_divergence_hyperboloid(
+			u[0], u[1], v[0], v[1])
 	elif dist_fn == "kle":
-		scores = -kullback_leibler_divergence_euclidean(embedding)
+		assert isinstance(u, tuple)
+		assert isinstance(v, tuple)
+		scores = -kullback_leibler_divergence_euclidean(
+			u[0], u[1], v[0], v[1])
 	elif dist_fn == "st":
-		scores = -euclidean_distances(embedding[0], embedding[1])
+		scores = -euclidean_distance(embedding[0], embedding[1])
 
 	return scores
 
@@ -279,20 +280,10 @@ def evaluate_mean_average_precision(scores,
 
 	return np.mean(precisions)
 
-def evaluate_rank_AUROC_AP(scores, 
-	edgelist, 
-	non_edgelist):
-	assert not isinstance(edgelist, dict)
-	assert (scores <= 0).all()
-
-	if not isinstance(edgelist, np.ndarray):
-		edgelist = np.array(edgelist)
-
-	if not isinstance(non_edgelist, np.ndarray):
-		non_edgelist = np.array(non_edgelist)
-
-	edge_scores = scores[edgelist[:,0], edgelist[:,1]]
-	non_edge_scores = scores[non_edgelist[:,0], non_edgelist[:,1]]
+def evaluate_rank_AUROC_AP(
+	edge_scores, 
+	non_edge_scores, 
+	):
 
 	labels = np.append(np.ones_like(edge_scores), 
 		np.zeros_like(non_edge_scores))
