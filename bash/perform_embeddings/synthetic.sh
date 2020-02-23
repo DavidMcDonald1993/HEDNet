@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-e=10000
+e=100
 
 datasets=({00..29})
 dims=(2 5 10 25 50)
