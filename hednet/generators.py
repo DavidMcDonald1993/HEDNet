@@ -105,10 +105,15 @@ class TrainingDataGenerator(Sequence):
 		# 	for k, count in Counter(batch_positive_samples[:,-1]).items()
 		# ], axis=1).T
 
-		batch_negative_samples = np.column_stack(
-			np.unravel_index(np.searchsorted(negative_samples[1], 
-				np.random.rand(batch_size * num_negative_samples)),
-				shape=(N, N)), )
+		# batch_negative_samples = np.column_stack(
+		# 	np.unravel_index(np.searchsorted(negative_samples[1], 
+		# 		np.random.rand(batch_size * num_negative_samples)),
+		# 		shape=(N, N)), )
+		batch_negative_samples = np.searchsorted(negative_samples[1],
+			np.random.rand(batch_size * num_negative_samples, 2))
+		# batch_negative_samples = np.random.randint(self.N, 
+		# 	size=(batch_size * num_negative_samples, 2))
+
 
 		batch_positive_samples = np.expand_dims(
 			batch_positive_samples[:,:-1], axis=1)
@@ -147,7 +152,7 @@ class TrainingDataGenerator(Sequence):
 		return training_sample, target
 
 	def on_epoch_end(self):
-		# positive_samples = self.positive_samples
-		# idx = np.random.permutation(len(positive_samples))
-		# self.positive_samples = positive_samples[idx]
+		positive_samples = self.positive_samples
+		idx = np.random.permutation(len(positive_samples))
+		self.positive_samples = positive_samples[idx]
 		pass

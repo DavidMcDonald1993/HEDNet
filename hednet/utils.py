@@ -208,18 +208,20 @@ def determine_positive_and_negative_samples(graph, args):
 		N = positive_samples[0].shape[0]
 		negative_samples = []
 
-		# counts = np.sum(positive_samples, axis=0).sum(axis=1).A
+		counts = np.sum(positive_samples, axis=0).sum(axis=1).A
+		assert np.all(counts > 0)
 		for k in range(len(positive_samples)):
 			if True or k == args.context_size:
 				# neg_samples = counts * counts.T 
-				neg_samples = np.ones((N, N), ) #* np.exp(-(args.context_size+1))
-				neg_samples[
-						np.sum(positive_samples[:k+1], axis=0).nonzero()
-					] = 0
-				assert np.allclose(neg_samples.diagonal(), 0)
+				# neg_samples = np.ones((N, N), ) #* np.exp(-(args.context_size+1))
+				# neg_samples[
+				# 		np.sum(positive_samples[:k+1], axis=0).nonzero()
+				# 	] = 0
+				# assert np.allclose(neg_samples.diagonal(), 0)
+				neg_samples = counts **.75
 			else:
+				assert False
 				neg_samples = np.zeros((N, N))
-				# neg_samples[positive_samples[k+1].nonzero()] = 1
 				neg_samples[np.sum(positive_samples[k+1:], axis=0).nonzero()] = 1
 			
 			neg_samples = neg_samples.flatten()

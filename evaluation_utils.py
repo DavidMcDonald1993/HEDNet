@@ -6,7 +6,6 @@ import pandas as pd
 import glob
 
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
-# from sklearn.metrics.pairwise import euclidean_distances
 
 import functools
 import fcntl
@@ -43,6 +42,7 @@ def logarithmic_map(p, x):
 		
 
 def parallel_transport(p, q, x):
+
 	assert len(p.shape) == len(q.shape) == len(x.shape)
 	alpha = -minkowski_dot(p, q)
 	return x + minkowski_dot(q - alpha * p, x) * (p + q) / \
@@ -88,7 +88,7 @@ def kullback_leibler_divergence_hyperboloid(source_mus,
 		target_mus)
 
 	# parallel transport to mu zero
-	mu_zero = np.zeros((1, 1, dim + 1))
+	mu_zero = np.zeros((1, dim + 1))
 	mu_zero[..., -1] = 1
 	
 	to_tangent_space_mu_zero = parallel_transport(source_mus,
@@ -223,67 +223,157 @@ def compute_scores(u, v, dist_fn):
 
 	return scores
 
-def evaluate_precision_at_k(scores, 
+def evaluate_precision_at_k(embedding, 
 	edgelist,  
+	dist_fn,
 	k=10):
 
 	edgelist_dict = {}
 	for u, v in edgelist:
 		if u not in edgelist_dict:
-			edgelist_dict.update({u: []})
-		edgelist_dict[u].append(v)
+			edgelist_dict.update({u: set()})
+		edgelist_dict[u].add(v)
 
 	precisions = []
 	for u in edgelist_dict:
-		scores_ = scores[u]
+
 		true_neighbours = edgelist_dict[u]
-		nodes_sorted = scores_.argsort()
+		if len(true_neighbours) < k:
+			continue
+
+		if isinstance(embedding, tuple):
+			scores = compute_scores(
+				(embedding[0][u:u+1], embedding[1][u:u+1]), 
+				embedding,
+				dist_fn)
+		else:
+			scores = compute_scores(
+				embedding[u:u+1], 
+				embedding,
+				dist_fn)
+		assert len(scores.shape) == 1
+		nodes_sorted = scores.argsort()
 		nodes_sorted = nodes_sorted[nodes_sorted != u][-k:]
 		s = np.mean([u in true_neighbours for u in nodes_sorted])
 		precisions.append(s)
 
 	return np.mean(precisions)
 
-def evaluate_mean_average_precision(scores, 
+def evaluate_mean_average_precision(
+	embedding, 
 	edgelist, 
-	graph_edges=None
+	dist_fn,
+	graph_edges=None,
+	ks=(1,3,5,10),
 	):
-	N, _  = scores.shape
+
+	if isinstance(embedding, tuple):
+		N, _  = embedding[0].shape
+	else:
+		N, _  = embedding.shape
+
+	all_nodes = set(range(N))
+
 	edgelist_dict = {}
 	for u, v in edgelist:
 		if u not in edgelist_dict:
-			edgelist_dict.update({u: []})
-		edgelist_dict[u].append(v)
+			edgelist_dict.update({u: set()})
+		edgelist_dict[u].add(v)
+
 	if graph_edges:
 		graph_edgelist_dict = {}
 		for u, v in graph_edges:
 			if u not in graph_edgelist_dict:
-				graph_edgelist_dict.update({u: []})
+				graph_edgelist_dict.update({u: set()})
 			if u in edgelist_dict and v not in edgelist_dict[u]:
-				graph_edgelist_dict[u].append(v)
+				graph_edgelist_dict[u].add(v)
 
 	precisions = []
-	for u in edgelist_dict:
-		scores_ = scores[u]
+	pks = {k: [] for k in ks}
+	for i, u in enumerate(edgelist_dict):
+
 		true_neighbours = edgelist_dict[u]
-		labels = np.array([n in true_neighbours 
-			for n in range(N)])
-		mask = np.array([n!=u or n in true_neighbours
-			for n in range(N)]) # ignore self loops
+		non_neighbours = all_nodes - {u} - true_neighbours
 		if graph_edges and u in graph_edgelist_dict:
-			mask *= np.array([n not in graph_edgelist_dict[u]
-				for n in range(N)]) # ignore training edges
-			assert mask.sum() > 0
-			assert labels[mask].sum() > 0
-		s = average_precision_score(labels[mask], scores_[mask])
+			non_neighbours -= graph_edgelist_dict[u]
+		
+		true_neighbours = list(true_neighbours)
+		non_neighbours = list(non_neighbours)
+
+		neighbours = true_neighbours + non_neighbours
+
+		if isinstance(embedding, tuple):
+			scores = compute_scores(
+				(embedding[0][u:u+1], embedding[1][u:u+1]), 
+				(embedding[0][neighbours], 
+					embedding[1][neighbours]), 
+				dist_fn)
+		else:
+			scores = compute_scores(
+				embedding[u:u+1], 
+				embedding[neighbours],
+				dist_fn)
+		assert len(scores.shape) == 1
+
+		labels = np.append(np.ones_like(true_neighbours),
+			np.zeros_like(non_neighbours))
+
+		# true_neighbours = edgelist_dict[u]
+		# labels = np.array([n in true_neighbours 
+		# 	for n in range(N)])
+		# mask = np.array([n!=u or n in true_neighbours
+		# 	for n in range(N)]) # ignore self loops
+		# if graph_edges and u in graph_edgelist_dict:
+		# 	mask *= np.array([n not in graph_edgelist_dict[u]
+		# 		for n in range(N)]) # ignore training edges
+		# 	assert mask.sum() > 0
+		# 	assert labels[mask].sum() > 0
+		# s = average_precision_score(labels[mask], scores[mask])
+		
+		s = average_precision_score(labels, scores)
 		precisions.append(s)
 
-	return np.mean(precisions)
+		nodes_sorted = scores.argsort()
+
+		for k in ks:
+			if len(true_neighbours) < k:
+				continue
+			nodes_sorted_ = nodes_sorted[-k:]
+			s = np.mean([neighbours[u] in true_neighbours 
+				for u in nodes_sorted_])
+			pks[k].append(s)
+
+		if i % 1000 == 0:
+			print ("completed", i, "/", len(edgelist_dict))
+
+
+	mAP = np.mean(precisions)
+	print ("MAP", mAP)
+
+	pks = {k: (np.mean(v) if len(v) > 0 else 0)
+			for k, v in pks.items()}
+
+	return mAP, pks
 
 def evaluate_rank_AUROC_AP(
-	edge_scores, 
-	non_edge_scores, 
+	embedding,
+	test_edges, 
+	test_non_edges, 
+	dist_fn,
 	):
+
+	edge_scores = get_scores(
+		embedding,
+		test_edges, 
+		dist_fn)
+
+	non_edge_scores = get_scores(
+		embedding,
+		test_non_edges, 
+		dist_fn)
+
+	assert len(edge_scores.shape) == 1
+	assert len(non_edge_scores.shape) == 1
 
 	labels = np.append(np.ones_like(edge_scores), 
 		np.zeros_like(non_edge_scores))
@@ -300,6 +390,24 @@ def evaluate_rank_AUROC_AP(
 		"AUROC =", auc_score)
 
 	return ranks, ap_score, auc_score
+
+def get_scores(embedding, edges, dist_fn):
+	if isinstance(embedding, tuple):
+		embedding, embedding_ = embedding
+		print ("embedding shape is", embedding.shape)
+
+		embedding_u = (embedding[edges[:,0]], 
+			embedding_[edges[:,0]])
+		embedding_v = (embedding[edges[:,1]], 
+			embedding_[edges[:,1]])
+
+	else:
+		print ("embedding shape is", embedding.shape)
+
+		embedding_u = embedding[test_edges[:,0]]
+		embedding_v = embedding[test_edges[:,1]]
+
+	return compute_scores(embedding_u, embedding_v, dist_fn)
 
 def touch(path):
 	with open(path, 'a'):

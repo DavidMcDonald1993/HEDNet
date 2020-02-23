@@ -111,7 +111,7 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 				tf.random_normal, 
 				stddev=1e-3,
 				dtype=K.floatx()),
-			regularizer=l2(1e-3),
+			regularizer=l2(1e-4),
 			trainable=True)
 		super(HyperboloidGaussianEmbeddingLayer, self).build(input_shape)
 
@@ -122,14 +122,11 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 		target_embedding = tf.gather(self.embedding, 
 			idx[:,1:])
 
-		# target_embedding = tf.gather(self.embedding, 
-		# 	idx)
-
-		to_tangent_space = logarithmic_map(\
+		to_tangent_space = logarithmic_map(
 			source_embedding,
 			target_embedding)
 
-		to_tangent_space_mu_zero = parallel_transport(\
+		to_tangent_space_mu_zero = parallel_transport(
 			source_embedding,
 			self.mu_zero,
 			to_tangent_space)
@@ -138,7 +135,7 @@ class HyperboloidGaussianEmbeddingLayer(Layer):
 
 		sigmas = K.elu(sigmas) + 1.
 
-		kds = kullback_leibler_divergence(\
+		kds = kullback_leibler_divergence(
 			mus=to_tangent_space_mu_zero,
 			sigmas=sigmas)
 

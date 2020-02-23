@@ -79,41 +79,41 @@ def main():
 	test_edges = read_edgelist(test_edgelist_fn)
 	test_non_edges = read_edgelist(test_non_edgelist_fn)
 
+	test_edges = np.array(test_edges)
+	test_non_edges = np.array(test_non_edges)
+
 	print ("number of test edges:", len(test_edges))
 	print ("number of test non edges:", len(test_non_edges))
 
-	embedding = load_embedding(args.dist_fn, args.embedding_directory)
-
-	scores = compute_scores(embedding, args.dist_fn)
+	embedding = load_embedding(args.dist_fn, 
+	args.embedding_directory)
 
 	test_results = dict()
 
 	(mean_rank_lp, ap_lp, 
-		roc_lp) = evaluate_rank_AUROC_AP(scores, 
-		test_edges, 
-		test_non_edges)
+		roc_lp) = evaluate_rank_AUROC_AP(
+			embedding,
+			test_edges, 
+			test_non_edges,
+			args.dist_fn)
 
 	test_results.update({"mean_rank_lp": mean_rank_lp, 
 		"ap_lp": ap_lp,
 		"roc_lp": roc_lp})
 
-	map_lp = evaluate_mean_average_precision(scores, 
-		test_edges, 
+	map_lp, precisions_at_k = evaluate_mean_average_precision(
+		embedding, 
+		test_edges,
+		args.dist_fn, 
 		graph_edges=graph.edges()
 		)
 
-	print ("MAP lp", map_lp)
-
 	test_results.update({"map_lp": map_lp})
 
-	test_results_dir = args.test_results_dir
-	if not os.path.exists(test_results_dir):
-		os.makedirs(test_results_dir, exist_ok=True)
-	test_results_filename = os.path.join(test_results_dir, 
-		"test_results.csv")
-	test_results_lock_filename = os.path.join(test_results_dir, 
-		"test_results.lock")
-	touch(test_results_lock_filename)
+	for k, pk in precisions_at_k.items():
+		print ("precision at", k, pk)
+	test_results.update({"p@{}".format(k): pk
+		for k, pk in precisions_at_k.items()})
 
 	print ("saving test results to {}".format(test_results_filename))
 

@@ -79,11 +79,11 @@ def parse_args():
 
 	parser.add_argument("--seed", dest="seed", type=int, default=0,
 		help="Random seed (default is 0).")
-	parser.add_argument("--lr", dest="lr", type=np.float64, default=.1,
-		help="Learning rate (default is .1).")
+	parser.add_argument("--lr", dest="lr", type=np.float64, default=1.,
+		help="(Hyperbolic) Learning rate (default is 1.).")
 
-	parser.add_argument("-e", "--num_epochs", dest="num_epochs", type=int, default=50,
-		help="The number of epochs to train for (default is 50).")
+	parser.add_argument("-e", "--num_epochs", dest="num_epochs", type=int, default=1000,
+		help="The number of epochs to train for (default is 1000).")
 	parser.add_argument("-b", "--batch_size", dest="batch_size", type=int, default=512, 
 		help="Batch size for training (default is 512).")
 	parser.add_argument("--nneg", dest="num_negative_samples", type=int, default=10, 
@@ -175,8 +175,8 @@ def main():
 	]			
 
 	positive_samples, negative_samples = \
-			determine_positive_and_negative_samples(graph, 
-			args)
+		determine_positive_and_negative_samples(graph, 
+		args)
 
 	print ("Training with data generator with {} worker threads".format(args.workers))
 	training_generator = TrainingDataGenerator(positive_samples,  
@@ -185,18 +185,19 @@ def main():
 		args,
 		graph
 	)
-
-	model.fit_generator(training_generator, 
-		workers=args.workers,
-		max_queue_size=100, 
-		# use_multiprocessing=args.workers>0, 
-		use_multiprocessing=False,
-		epochs=args.num_epochs, 
-		steps_per_epoch=len(training_generator),
-		initial_epoch=initial_epoch, 
-		verbose=args.verbose,
-		callbacks=callbacks
-	)
+	try:
+		model.fit_generator(training_generator, 
+			workers=args.workers,
+			max_queue_size=100, 
+			use_multiprocessing=False,#args.workers>0, 
+			epochs=args.num_epochs, 
+			steps_per_epoch=len(training_generator),
+			initial_epoch=initial_epoch, 
+			verbose=args.verbose,
+			callbacks=callbacks
+		)
+	except KeyboardInterrupt:
+		print ("Interrupted")
 
 	print ("Training complete")
 	print ("Loading best model from", best_model_path)
@@ -225,14 +226,13 @@ def main():
 	variance_df.to_csv(variance_filename)
 
 	if args.visualise:
-		embedding = model.get_weights()[0]
 		if embedding.shape[1] == 3:
 			print ("projecting to poincare ball")
 			embedding = hyperboloid_to_poincare_ball(embedding)
-		draw_graph(graph,
-			embedding, 
-			node_labels, 
-			path="2d-poincare-disk-visualisation.png")
+			draw_graph(graph,
+				embedding, 
+				node_labels, 
+				path="2d-poincare-disk-visualisation.png")
 
 if __name__ == "__main__":
 	main()
