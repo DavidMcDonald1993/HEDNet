@@ -13,7 +13,7 @@ import fcntl
 import random
 
 def euclidean_distance(u, v):
-	return np.linag.norm(u - v, axis=-1)
+	return np.linalg.norm(u - v, axis=-1)
 
 def minkowski_dot(x, y):
 	assert len(x.shape) == len(y.shape) 
