@@ -4,7 +4,7 @@
 #SBATCH --output=SYNTHETIC_%A_%a.out
 #SBATCH --error=SYNTHETIC_%A_%a.err
 #SBATCH --array=0-299
-#SBATCH --time=10-00:00:00
+#SBATCH --time=03:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
