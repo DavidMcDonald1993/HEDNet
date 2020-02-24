@@ -221,6 +221,8 @@ def compute_scores(u, v, dist_fn):
 		scores = -kullback_leibler_divergence_euclidean(
 			u[0], u[1], v[0], v[1])
 	elif dist_fn == "st":
+		assert not isinstance(u, tuple)
+		assert not isinstance(v, tuple)
 		scores = -euclidean_distance(u, v)
 
 	return scores
@@ -309,11 +311,20 @@ def evaluate_mean_average_precision(
 
 		neighbours = true_neighbours + non_neighbours
 
-		if isinstance(embedding, tuple):
+		if dist_fn in ("kle", "klh"):
+			assert isinstance(embedding, tuple)
+			means, variances = embedding
 			scores = compute_scores(
-				(embedding[0][u:u+1], embedding[1][u:u+1]), 
-				(embedding[0][neighbours], 
-					embedding[1][neighbours]), 
+				(means[u:u+1], variances[u:u+1]), 
+				(means[neighbours], 
+					variances[neighbours]), 
+				dist_fn)
+		elif dist_fn == "st":
+			assert isinstance(embedding, tuple)
+			source, target = embedding
+			scores = compute_scores(
+				source[u:u+1], 
+				target[neighbours],  
 				dist_fn)
 		else:
 			scores = compute_scores(
@@ -399,17 +410,20 @@ def evaluate_rank_AUROC_AP(
 	return ranks, ap_score, auc_score
 
 def get_scores(embedding, edges, dist_fn):
-	if isinstance(embedding, tuple):
-		embedding, embedding_ = embedding
-		print ("embedding shape is", embedding.shape)
+	if dist_fn in ("kle", "klh"):
+		means, variances = embedding
 
-		embedding_u = (embedding[edges[:,0]], 
-			embedding_[edges[:,0]])
-		embedding_v = (embedding[edges[:,1]], 
-			embedding_[edges[:,1]])
+		embedding_u = (means[edges[:,0]], 
+			variances[edges[:,0]])
+		embedding_v = (means[edges[:,1]], 
+			variances[edges[:,1]])
+
+	elif dist_fn == "st":
+		source, target = embedding
+		embedding_u = source[edges[:,0]]
+		embedding_v = target[edges[:,1]]
 
 	else:
-		print ("embedding shape is", embedding.shape)
 
 		embedding_u = embedding[test_edges[:,0]]
 		embedding_v = embedding[test_edges[:,1]]
