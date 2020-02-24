@@ -12,7 +12,7 @@ scales=(False)
 datasets=({0..29})
 dims=(2 5 10 25 50)
 seeds=(0)
-ks=(02 03 04 05 06)
+ks=({2..6})
 exp=lp_experiment
 
 num_scales=${#scales[@]}
@@ -35,7 +35,7 @@ k=${ks[$k_id]}
 
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=$(printf embeddings/synthetic_scale_free/%02d/${exp} ${dataset})
+embedding_dir=$(printf ../graph2gauss/embeddings/synthetic_scale_free/%02d/${exp}/scale=${scale}/k=%02d ${dataset} ${k})
 removed_edges_dir=$(printf edgelists/synthetic_scale_free/%02d/seed=%03d/removed_edges ${dataset} ${seed})
 
 test_results=$(printf \
