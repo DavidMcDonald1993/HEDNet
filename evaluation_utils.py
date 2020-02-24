@@ -425,8 +425,8 @@ def get_scores(embedding, edges, dist_fn):
 
 	else:
 
-		embedding_u = embedding[test_edges[:,0]]
-		embedding_v = embedding[test_edges[:,1]]
+		embedding_u = embedding[edges[:,0]]
+		embedding_v = embedding[edges[:,1]]
 
 	return compute_scores(embedding_u, embedding_v, dist_fn)
 
