@@ -124,6 +124,7 @@ def load_file(filename, header="infer", sep=","):
 		header=header, sep=sep)
 	idx = sorted(df.index)
 	df = df.reindex(idx)
+	print ("embedding shape is", df.shape)
 	return df.values
 
 def load_hyperboloid(embedding_directory):
@@ -146,7 +147,8 @@ def load_euclidean(embedding_directory):
 	files = sorted(glob.iglob(os.path.join(embedding_directory, 
 		"*.csv.gz")))
 	embedding_filename = files[-1]
-	embedding = load_file(embedding_filename, header=None, sep=" ")
+	embedding = load_file(embedding_filename, 
+		header=None, sep=" ")
 	return embedding
 
 def load_klh(embedding_directory):
