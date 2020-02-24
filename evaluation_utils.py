@@ -10,6 +10,8 @@ from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 import functools
 import fcntl
 
+import random
+
 def euclidean_distance(u, v):
 	return np.linag.norm(u - v, axis=-1)
 
@@ -223,41 +225,41 @@ def compute_scores(u, v, dist_fn):
 
 	return scores
 
-def evaluate_precision_at_k(embedding, 
-	edgelist,  
-	dist_fn,
-	k=10):
+# def evaluate_precision_at_k(embedding, 
+# 	edgelist,  
+# 	dist_fn,
+# 	k=10):
 
-	edgelist_dict = {}
-	for u, v in edgelist:
-		if u not in edgelist_dict:
-			edgelist_dict.update({u: set()})
-		edgelist_dict[u].add(v)
+# 	edgelist_dict = {}
+# 	for u, v in edgelist:
+# 		if u not in edgelist_dict:
+# 			edgelist_dict.update({u: set()})
+# 		edgelist_dict[u].add(v)
 
-	precisions = []
-	for u in edgelist_dict:
+# 	precisions = []
+# 	for u in edgelist_dict:
 
-		true_neighbours = edgelist_dict[u]
-		if len(true_neighbours) < k:
-			continue
+# 		true_neighbours = edgelist_dict[u]
+# 		if len(true_neighbours) < k:
+# 			continue
 
-		if isinstance(embedding, tuple):
-			scores = compute_scores(
-				(embedding[0][u:u+1], embedding[1][u:u+1]), 
-				embedding,
-				dist_fn)
-		else:
-			scores = compute_scores(
-				embedding[u:u+1], 
-				embedding,
-				dist_fn)
-		assert len(scores.shape) == 1
-		nodes_sorted = scores.argsort()
-		nodes_sorted = nodes_sorted[nodes_sorted != u][-k:]
-		s = np.mean([u in true_neighbours for u in nodes_sorted])
-		precisions.append(s)
+# 		if isinstance(embedding, tuple):
+# 			scores = compute_scores(
+# 				(embedding[0][u:u+1], embedding[1][u:u+1]), 
+# 				embedding,
+# 				dist_fn)
+# 		else:
+# 			scores = compute_scores(
+# 				embedding[u:u+1], 
+# 				embedding,
+# 				dist_fn)
+# 		assert len(scores.shape) == 1
+# 		nodes_sorted = scores.argsort()
+# 		nodes_sorted = nodes_sorted[nodes_sorted != u][-k:]
+# 		s = np.mean([u in true_neighbours for u in nodes_sorted])
+# 		precisions.append(s)
 
-	return np.mean(precisions)
+# 	return np.mean(precisions)
 
 def evaluate_mean_average_precision(
 	embedding, 
@@ -265,6 +267,7 @@ def evaluate_mean_average_precision(
 	dist_fn,
 	graph_edges=None,
 	ks=(1,3,5,10),
+	max_non_neighbours=1000
 	):
 
 	if isinstance(embedding, tuple):
@@ -299,6 +302,10 @@ def evaluate_mean_average_precision(
 		
 		true_neighbours = list(true_neighbours)
 		non_neighbours = list(non_neighbours)
+
+		if len(non_neighbours) > max_non_neighbours:
+			non_neighbours = random.sample(non_neighbours, 
+				k=max_non_neighbours,)
 
 		neighbours = true_neighbours + non_neighbours
 

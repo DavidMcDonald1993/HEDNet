@@ -70,7 +70,7 @@ def logarithmic_map(p, x):
 
 	return ret
 
-def hyperboloid_initializer(shape, r_max=1e-3):
+def hyperboloid_initializer(shape, r_max=5e-3):
 
 	def poincare_ball_to_hyperboloid(X, append_t=True):
 		x = 2 * X

@@ -122,7 +122,7 @@ class TrainingDataGenerator(Sequence):
 
 		training_sample = np.concatenate(
 			(batch_positive_samples, batch_negative_samples), 
-			axis=1).reshape(batch_size*(num_negative_samples+1), 2)
+			axis=1).reshape(batch_size*(num_negative_samples + 1), 2)
 
 		# training_sample = np.empty(
 		# 	(len(batch_positive_samples) + len(batch_negative_samples), 2), 

@@ -7,7 +7,7 @@ import networkx as nx
 import argparse
 
 from hednet.utils import load_data
-from evaluation_utils import check_complete, load_embedding, compute_scores, evaluate_rank_AUROC_AP, evaluate_mean_average_precision, evaluate_precision_at_k, touch, threadsafe_save_test_results
+from evaluation_utils import check_complete, load_embedding, compute_scores, evaluate_rank_AUROC_AP, evaluate_mean_average_precision, touch, threadsafe_save_test_results
 from remove_utils import sample_non_edges
 
 def parse_args():
@@ -111,7 +111,8 @@ def main():
 	test_results.update({"p@{}".format(k): pk
 		for k, pk in precisions_at_k.items()})
 
-	print ("saving test results to {}".format(test_results_filename))
+	print ("saving test results to {}".format(
+		test_results_filename))
 
 	threadsafe_save_test_results(test_results_lock_filename, 
 		test_results_filename, args.seed, data=test_results )

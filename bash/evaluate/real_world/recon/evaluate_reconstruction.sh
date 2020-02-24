@@ -6,7 +6,7 @@
 #SBATCH --array=0-749
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem=30G
+#SBATCH --mem=5G
 
 datasets=(cora_ml citeseer pubmed wiki_vote email)
 dims=(2 5 10 25 50)

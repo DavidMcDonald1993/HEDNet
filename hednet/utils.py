@@ -218,7 +218,7 @@ def determine_positive_and_negative_samples(graph, args):
 				# 		np.sum(positive_samples[:k+1], axis=0).nonzero()
 				# 	] = 0
 				# assert np.allclose(neg_samples.diagonal(), 0)
-				neg_samples = counts **.75
+				neg_samples = counts ** .75
 			else:
 				assert False
 				neg_samples = np.zeros((N, N))
