@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-datasets=({00..29})
+datasets=({0..29})
 dims=(2 5 10 25 50)
 seeds=(0)
 methods=(line)
@@ -29,11 +29,11 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
-data_dir=datasets/synthetic_scale_free/${dataset}
+data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=../OpenANE/embeddings/synthetic_scale_free/${dataset}/${exp}/${dim}/${method}/${seed}
+embedding_dir=$(printf ../OpenANE/embeddings/synthetic_scale_free/%02d/${exp}/${dim}/${method}/${seed} ${dataset})
 
-output=edgelists/synthetic_scale_free/${dataset}
+removed_edges_dir=$(printf edgelists/synthetic_scale_free/%02d/seed=%03d/removed_edges ${dataset} ${seed})
 
 test_results=$(printf \
     "test_results/synthetic_scale_free/${exp}/dim=%03d/${method}/" ${dim})
@@ -43,7 +43,7 @@ echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --output ${output} \
     --dist_fn euclidean \
-    --embedding ${embedding_dir} --seed ${seed} \
+    --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})
 echo ${args}
 
