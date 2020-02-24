@@ -221,7 +221,7 @@ def compute_scores(u, v, dist_fn):
 		scores = -kullback_leibler_divergence_euclidean(
 			u[0], u[1], v[0], v[1])
 	elif dist_fn == "st":
-		scores = -euclidean_distance(embedding[0], embedding[1])
+		scores = -euclidean_distance(u, v)
 
 	return scores
 
