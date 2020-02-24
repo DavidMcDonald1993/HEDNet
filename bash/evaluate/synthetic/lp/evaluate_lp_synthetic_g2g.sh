@@ -47,8 +47,8 @@ echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --output ${output} \
     --dist_fn kle \
-    --embedding ${embedding_dir} --seed ${dataset} \
-    --test-results-dir ${seed})
+    --embedding ${embedding_dir} --seed ${seed} \
+    --test-results-dir ${test_results})
 echo ${args}
 
 module purge

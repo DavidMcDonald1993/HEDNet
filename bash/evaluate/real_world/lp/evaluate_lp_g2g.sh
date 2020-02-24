@@ -44,7 +44,8 @@ embedding_dir=$(printf "${embedding_dir}/scale=${scale}/k=${k}/seed=%03d/dim=%03
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --output ${output} --dist_fn kle \
+args=$(echo --edgelist ${edgelist} --output ${output} \
+    --dist_fn kle \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})
 echo ${args}
