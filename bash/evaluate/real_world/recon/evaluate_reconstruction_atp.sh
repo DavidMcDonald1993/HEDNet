@@ -3,7 +3,7 @@
 #SBATCH --job-name=ATPRECON
 #SBATCH --output=ATPRECON_%A_%a.out
 #SBATCH --error=ATPRECON_%A_%a.err
-#SBATCH --array=0-2249
+#SBATCH --array=0-1499
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
@@ -11,7 +11,7 @@
 datasets=(cora_ml citeseer pubmed email wiki_vote)
 dims=(2 5 10 25 50)
 seeds=({00..29})
-methods=(linear ln harmonic)
+methods=(ln harmonic)
 exp=recon_experiment
 
 num_datasets=${#datasets[@]}
