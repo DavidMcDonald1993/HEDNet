@@ -36,7 +36,7 @@ k=${ks[$k_id]}
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=$(printf embeddings/synthetic_scale_free/%02d/${exp} ${dataset})
-removed_edges_dir=$(printf edgelists/synthetic_scale_free/%02d/%03d/removed_edges ${dataset} ${seed})
+removed_edges_dir=$(printf edgelists/synthetic_scale_free/%02d/seed=%03d/removed_edges ${dataset} ${seed})
 
 test_results=$(printf \
     "test_results/synthetic_scale_free/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
