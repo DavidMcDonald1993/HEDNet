@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# experiments
-for dataset in {cora_ml,citeseer,pubmed,wiki_vote,email}
+for dataset in cora_ml citeseer pubmed wiki_vote cora
 do
 	for dim in 2 5 10 25 50
 	do	
-		for seed in {00..29}
+		for seed in {0..29}
 		do
 			for exp in recon_experiment lp_experiment
 			do
