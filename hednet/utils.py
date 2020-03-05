@@ -38,9 +38,14 @@ def load_data(args):
 	print ("removing", len(zero_weight_edges), "edges with 0. weight")
 	graph.remove_edges_from(zero_weight_edges)
 
-	print ("ensuring all weights are positive")
-	nx.set_edge_attributes(graph, name="weight", values={edge: abs(weight) 
-		for edge, weight in nx.get_edge_attributes(graph, name="weight").items()})
+	# print ("ensuring all weights are positive")
+	# nx.set_edge_attributes(graph, name="weight", values={edge: abs(weight) 
+	# 	for edge, weight in nx.get_edge_attributes(graph, name="weight").items()})
+
+	nx.set_edge_attributes(graph, name="weight",
+		values={edge: np.int8(weight) 
+		for edge, weight in nx.get_edge_attributes(graph, "weight").items()})
+
 
 	# graph = max(nx.strongly_connected_component_subgraphs(graph), key=len)
 	# graph = nx.convert_node_labels_to_integers(graph)

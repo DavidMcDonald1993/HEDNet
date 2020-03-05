@@ -156,7 +156,7 @@ def main():
 	model.summary()
 
 	best_model_path = os.path.join(args.embedding_path, 
-			"best_model.h5")
+		"best_model.h5")
 	callbacks = [
 		TerminateOnNaN(),
 		EarlyStopping(monitor="loss", 
@@ -200,15 +200,16 @@ def main():
 		print ("Interrupted")
 
 	print ("Training complete")
-	print ("Loading best model from", best_model_path)
-	model.load_weights(best_model_path)
+	if os.path.exists(best_model_path):
+		print ("Loading best model from", best_model_path)
+		model.load_weights(best_model_path)
 
-	print ("saving final embedding")
+	print ("Saving final embedding")
 
 	weights = model.get_weights()
 
 	embedding_filename = os.path.join(args.embedding_path, 
-			"final_embedding.csv.gz")
+			"final_embedding.csv")
 	embedding = weights[0]
 	embedding_df = pd.DataFrame(embedding, index=sorted(graph.nodes()))
 	embedding_df.to_csv(embedding_filename)
@@ -216,7 +217,7 @@ def main():
 	print ("saved final embedding to {}".format(embedding_filename))
 
 	variance_filename = os.path.join(args.embedding_path, 
-		"final_variance.csv.gz")
+		"final_variance.csv")
 	variance = weights[1]
 
 	variance = elu(variance) + 1
