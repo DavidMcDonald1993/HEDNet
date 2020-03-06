@@ -33,6 +33,8 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
 
+echo $scale $dataset $dim $seed $k 
+
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=$(printf ../graph2gauss/embeddings/synthetic_scale_free/%02d/${exp}/scale=${scale}/k=%02d ${dataset} ${k})

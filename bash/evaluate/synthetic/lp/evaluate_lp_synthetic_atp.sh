@@ -29,6 +29,8 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 method=${methods[$method_id]}
 
+echo $dataset $dim $seed $method
+
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=$(printf "../atp/embeddings/synthetic_scale_free/%02d/${exp}/seed=%03d/dim=%03d/${method}" ${dataset} ${seed} ${dim})
