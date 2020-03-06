@@ -31,7 +31,7 @@ method=${methods[$method_id]}
 
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=../OpenANE/embeddings/synthetic_scale_free/${dataset}/${exp}/${dim}/${method}/${seed}
+embedding_dir=$(printf ../OpenANE/embeddings/synthetic_scale_free/%02d/${exp}/${dim}/${method}/${seed} ${dataset})
 
 test_results=$(printf \
     "test_results/synthetic_scale_free/${exp}/dim=%03d/${method}/" ${dim})

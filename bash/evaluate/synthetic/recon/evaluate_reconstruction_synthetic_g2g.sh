@@ -35,7 +35,7 @@ k=${ks[$k_id]}
 
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=../graph2gauss/embeddings/synthetic_scale_free/${dataset}/${exp}/scale=${scale}/k=${k}
+embedding_dir=$(printf ../graph2gauss/embeddings/synthetic_scale_free/%02d/${exp}/scale=${scale}/k=${k} ${dataset})
 
 test_results=$(printf \
     "test_results/synthetic_scale_free/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
