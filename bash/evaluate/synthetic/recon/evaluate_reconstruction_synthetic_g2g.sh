@@ -9,7 +9,7 @@
 #SBATCH --mem=5G
 
 scales=(False)
-datasets=({00..29})
+datasets=({0..29})
 dims=(2 5 10 25 50)
 seeds=(0)
 ks=(02 03 04 05 06)
@@ -33,7 +33,7 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
 
-data_dir=datasets/synthetic_scale_free/${dataset}
+data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=../graph2gauss/embeddings/synthetic_scale_free/${dataset}/${exp}/scale=${scale}/k=${k}
 
@@ -45,7 +45,7 @@ echo ${embedding_dir}
 echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --dist_fn kle \
-    --embedding ${embedding_dir} --seed ${seed} \
+    --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})
 echo ${args}
 

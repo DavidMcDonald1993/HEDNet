@@ -9,7 +9,7 @@
 #SBATCH --mem=5G
 
 scales=(False)
-datasets=(cora_ml citeseer pubmed wiki_vote email)
+datasets=(cora_ml citeseer pubmed wiki_vote cora)
 dims=(2 5 10 25 50)
 seeds=({0..29})
 ks=(03)
@@ -44,7 +44,8 @@ embedding_dir=$(printf "${embedding_dir}/scale=${scale}/k=${k}/seed=%03d/dim=%03
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --removed_edges_dir ${removed_edges_dir} \
+args=$(echo --edgelist ${edgelist} \
+    --removed_edges_dir ${removed_edges_dir} \
     --dist_fn kle \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})

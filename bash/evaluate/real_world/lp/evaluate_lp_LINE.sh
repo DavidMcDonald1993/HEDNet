@@ -8,9 +8,9 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-datasets=(cora_ml citeseer pubmed email wiki_vote)
+datasets=(cora_ml citeseer pubmed wiki_vote cora)
 dims=(2 5 10 25 50)
-seeds=({00..29})
+seeds=({0..29})
 methods=(line)
 exp=lp_experiment
 
@@ -41,7 +41,8 @@ echo ${embedding_dir}
 echo ${test_results}
 
 
-args=$(echo --edgelist ${edgelist} --removed_edges_dir ${removed_edges_dir} \
+args=$(echo --edgelist ${edgelist} \
+    --removed_edges_dir ${removed_edges_dir} \
     --dist_fn euclidean \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})

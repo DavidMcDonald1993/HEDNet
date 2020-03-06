@@ -40,7 +40,8 @@ test_results=$(printf \
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --removed_edges_dir ${removed_edges_dir} \
+args=$(echo --edgelist ${edgelist} \
+    --removed_edges_dir ${removed_edges_dir} \
     --dist_fn st \
     --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})

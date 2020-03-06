@@ -8,9 +8,9 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-datasets=(cora_ml citeseer pubmed email wiki_vote)
+datasets=(cora_ml citeseer pubmed wiki_vote cora)
 dims=(2 5 10 25 50)
-seeds=({00..29})
+seeds=({0..29})
 methods=(ln harmonic)
 exp=lp_experiment
 
@@ -33,14 +33,15 @@ data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=$(printf "../atp/embeddings/${dataset}/${exp}/seed=%03d/dim=%03d/${method}" ${seed} ${dim})
 
-removed_edges_dir=$(printf edgelists/${dataset}/seed=03d/removed_edges ${seed})
+removed_edges_dir=$(printf edgelists/${dataset}/seed=%03d/removed_edges ${seed})
 
 test_results=$(printf \
     "test_results/${dataset}/${exp}/dim=%03d/${method}/" ${dim})
 echo ${embedding_dir}
 echo ${test_results}
 
-args=$(echo --edgelist ${edgelist} --removed_edges_dir ${removed_edges_dir} \
+args=$(echo --edgelist ${edgelist} \
+    --removed_edges_dir ${removed_edges_dir} \
     --dist_fn st \
     --embedding ${embedding_dir} --seed ${seed} \
     --test-results-dir ${test_results})

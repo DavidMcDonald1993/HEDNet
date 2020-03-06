@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-datasets=({00..29})
+datasets=({0..29})
 dims=(2 5 10 25 50)
 seeds=(0)
 exp=recon_experiment
@@ -25,7 +25,7 @@ dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 
-data_dir=datasets/synthetic_scale_free/${dataset}
+data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz
 embedding_dir=embeddings/synthetic_scale_free/${dataset}/${exp}
 
@@ -37,7 +37,7 @@ echo ${embedding_dir}
 echo ${test_results}
 
 args=$(echo --edgelist ${edgelist} --dist_fn klh \
-    --embedding ${embedding_dir} --seed ${seed} \
+    --embedding ${embedding_dir} --seed ${dataset} \
     --test-results-dir ${test_results})
 echo ${args}
 

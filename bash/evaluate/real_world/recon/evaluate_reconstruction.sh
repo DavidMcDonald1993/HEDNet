@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
-datasets=(cora_ml citeseer pubmed wiki_vote email)
+datasets=(cora_ml citeseer pubmed wiki_vote cora)
 dims=(2 5 10 25 50)
 seeds=({0..29})
 exp=recon_experiment
