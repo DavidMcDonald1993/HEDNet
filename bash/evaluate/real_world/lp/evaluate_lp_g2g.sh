@@ -35,7 +35,7 @@ k=${ks[$k_id]}
 
 data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz
-removed_edge_dir=$(printf edgelists/${dataset}/seed=%03d/removed_edges ${seed})
+removed_edges_dir=$(printf edgelists/${dataset}/seed=%03d/removed_edges ${seed})
 
 test_results=$(printf \
     "test_results/${dataset}/${exp}/dim=%03d/g2g_k=${k}/" ${dim})
