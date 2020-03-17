@@ -36,7 +36,7 @@ def main():
 	exp = "{}_experiment".format(args.exp)
 	dims = ["dim={:03}".format(dim) 
 		for dim in (2, 5, 10, 25, 50)]
-	algorithms = ["ln", "harmonic",] + \
+	algorithms = ["ln", "harmonic",] + ["line"] + \
 		["g2g_k={:02d}".format(k) for k in (1, 3)] + \
 			["HEDNet"]
 
