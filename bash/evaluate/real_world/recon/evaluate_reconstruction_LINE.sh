@@ -31,7 +31,7 @@ method=${methods[$method_id]}
 
 data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/${seed}
+embedding_dir=$(printf ../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/%02d ${seed})
 
 test_results=$(printf \
     "test_results/${dataset}/${exp}/dim=%03d/${method}/" ${dim})
