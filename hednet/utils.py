@@ -43,9 +43,8 @@ def load_data(args):
 	# 	for edge, weight in nx.get_edge_attributes(graph, name="weight").items()})
 
 	nx.set_edge_attributes(graph, name="weight",
-		values={edge: np.int8(weight) 
+		values={edge: np.int16(weight) 
 		for edge, weight in nx.get_edge_attributes(graph, "weight").items()})
-
 
 	# graph = max(nx.strongly_connected_component_subgraphs(graph), key=len)
 	# graph = nx.convert_node_labels_to_integers(graph)
