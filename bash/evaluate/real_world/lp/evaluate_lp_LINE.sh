@@ -31,7 +31,7 @@ method=${methods[$method_id]}
 
 data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz
-embedding_dir=$(printf ../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/%02d ${seed)}
+embedding_dir=$(printf ../OpenANE/embeddings/${dataset}/${exp}/${dim}/${method}/%02d ${seed)})
 
 removed_edges_dir=$(printf edgelists/${dataset}/seed=%03d/removed_edges ${seed})
 
