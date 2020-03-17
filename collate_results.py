@@ -34,7 +34,8 @@ def main():
 		"citeseer",  "pubmed", "wiki_vote", "cora"]
 
 	exp = "{}_experiment".format(args.exp)
-	dims = ["dim={:03}".format(dim) for dim in (5, 10, 25, 50)]
+	dims = ["dim={:03}".format(dim) 
+		for dim in (2, 5, 10, 25, 50)]
 	algorithms = ["ln", "harmonic",] + \
 		["g2g_k={}".format(k) for k in (1, 3)] + \
 			["HEDNet"]
@@ -52,11 +53,12 @@ def main():
 
 			for algorithm in algorithms:
 
-				results_file = os.path.join(args.test_results_path, 
+				results_file = os.path.join(
+					args.test_results_path, 
 					dataset,
 					exp,
-					algorithm,
 					dim,
+					algorithm,
 					"test_results.csv")
 				print ("reading", results_file)
 
