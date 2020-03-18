@@ -3,13 +3,13 @@
 #SBATCH --job-name=removeEdgesSynthetic
 #SBATCH --output=removeEdgesSynthetic_%A_%a.out
 #SBATCH --error=removeEdgesSynthetic_%A_%a.err
-#SBATCH --array=0-2999
+#SBATCH --array=0-29
 #SBATCH --time=05:00:00
 #SBATCH --ntasks=1
-#SBATCH --mem=20G
+#SBATCH --mem=1G
 
 datasets=({00..29})
-seeds=({0..29})
+seeds=({0..0})
 
 num_datasets=${#datasets[@]}
 num_seeds=${#seeds[@]}
