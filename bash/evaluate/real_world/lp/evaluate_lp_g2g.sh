@@ -33,6 +33,11 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
 
+dataset=cora 
+dim=10 
+seed=0 
+k=01
+
 data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz
 removed_edges_dir=$(printf edgelists/${dataset}/seed=%03d/removed_edges ${seed})

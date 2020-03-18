@@ -8,7 +8,7 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=1G
 
-datasets=(cora_ml citeseer pubmed wiki_vote email cora)
+datasets=(cora_ml citeseer pubmed wiki_vote cora email)
 seeds=({0..29})
 
 num_datasets=${#datasets[@]}
@@ -29,7 +29,10 @@ if [ ! -f $edgelist_f  ]
 then
 	module purge
 	module load bluebear
-	module load apps/python3/3.5.2
+	module load future/0.16.0-foss-2018b-Python-3.6.6
 
-	python remove_edges.py --edgelist=$edgelist --output=$output --seed $seed
+	args=$(echo --edgelist=$edgelist \
+		--output=$output --seed $seed)
+
+	python remove_edges.py ${args}
 fi
