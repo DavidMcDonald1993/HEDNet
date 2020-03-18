@@ -75,7 +75,7 @@ def parse_args():
 	parser.add_argument("--edgelist", dest="edgelist", type=str, default=None,
 		help="edgelist to load.")
 	parser.add_argument("--labels", dest="labels", type=str, default=None,
-		help="path to labels (just used for plotting)")
+		help="path to labels (only used for plotting)")
 
 	parser.add_argument("--seed", dest="seed", type=int, default=0,
 		help="Random seed (default is 0).")
@@ -99,7 +99,7 @@ def parse_args():
 	parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", 
 		help="Use this flag to set verbosity of training.")
 	parser.add_argument('--workers', dest="workers", type=int, default=2, 
-		help="Number of worker threads to generate training patterns (default is 2).")
+		help="Number of worker threads to generate training samples (default is 2).")
 
 	parser.add_argument("--embedding", dest="embedding_path", default=None, 
 		help="path to save embedings.")
@@ -135,9 +135,6 @@ def main():
 		node_labels = None
 	print ("Loaded dataset")
 
-	if False:
-		plot_degree_dist(graph, "degree distribution")
-
 	configure_paths(args)
 	print ("Configured paths")
 
@@ -170,7 +167,6 @@ def main():
 			mode="min"),
 		Checkpointer(epoch=initial_epoch, 
 			nodes=sorted(graph.nodes()), 
-			# history=args.patience,
 			embedding_directory=args.embedding_path)
 	]			
 
@@ -188,7 +184,7 @@ def main():
 	try:
 		model.fit_generator(training_generator, 
 			workers=args.workers,
-			max_queue_size=100, 
+			max_queue_size=10, 
 			use_multiprocessing=False,#args.workers>0, 
 			epochs=args.num_epochs, 
 			steps_per_epoch=len(training_generator),

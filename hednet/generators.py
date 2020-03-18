@@ -19,7 +19,6 @@ class TrainingDataGenerator(Sequence):
 		model,
 		args,
 		graph,
-		passes=100,
 		):
 		assert isinstance(positive_samples, np.ndarray)
 		assert isinstance(negative_samples, list)
@@ -37,35 +36,13 @@ class TrainingDataGenerator(Sequence):
 		# self.sps = nx.floyd_warshall_numpy(graph, 
 		# 	nodelist=sorted(graph))
 
-		self.passes = passes
-
 		print ("Built generator")
 
-		# N = 5000
-		# pairs = np.ones((N, N))
-		# for row in positive_samples:
-		# 	pairs[row[0], row[1]] = 0
-
-		# for i in range(10000):
-		# 	u, v = np.unravel_index(
-		# 		np.searchsorted(negative_samples[1], 
-		# 		np.random.rand(self.num_negative_samples*self.batch_size)),
-		# 		shape=(N, N))
-
-		# 	pairs[u, v] = 0
-
-		# 	print (i, pairs.sum())
-
-		# 	if pairs.sum() == 0:
-		# 		print ("DONE", i)
-		# 		break
-
-		# raise SystemExit
 
 	def __len__(self):
 		return 10000
-		# return int(np.ceil(len(self.positive_samples) /\
-		# 	float(self.batch_size))) * self.passes
+		# return int (np.ceil(
+		# 	self.num_positive_samples / self.batch_size))
 
 	def __getitem__(self, batch_idx):
 
@@ -75,14 +52,13 @@ class TrainingDataGenerator(Sequence):
 		negative_samples = self.negative_samples
 		N = self.N
 		num_positive_samples = self.num_positive_samples
-		# passes = self.passes
 
-		# batch_idx = batch_idx % passes
-	
 		# batch_positive_samples = positive_samples[
 		# 	batch_idx * batch_size : \
 		# 	(batch_idx+1) * batch_size
 		# ]
+
+		# batch_size = batch_positive_samples.shape[0]
 
 		# idx = random.choices(
 		# 	range(len(positive_samples)), 
@@ -114,7 +90,6 @@ class TrainingDataGenerator(Sequence):
 		# batch_negative_samples = np.random.randint(self.N, 
 		# 	size=(batch_size * num_negative_samples, 2))
 
-
 		batch_positive_samples = np.expand_dims(
 			batch_positive_samples[:,:-1], axis=1)
 		batch_negative_samples = batch_negative_samples.reshape(
@@ -134,11 +109,10 @@ class TrainingDataGenerator(Sequence):
 
 		# for i in range(self.batch_size):
 
-		# 	arr = training_sample[i*(num_negative_samples+1) : \
-		# 		(i+1)*(num_negative_samples+1)]
-		# 	for row in arr[1:]:
-		# 		assert self.sps[arr[0,0], arr[0,1]] < self.sps[row[0], row[1]]
-
+			# arr = training_sample[i*(num_negative_samples+1) : \
+			# 	(i+1)*(num_negative_samples+1)]
+			# edge = tuple(arr[0])
+			# assert edge in self.graph.edges
 
 		# training_sample = np.array([
 		# 	np.append(sample[:-1], 
@@ -153,6 +127,5 @@ class TrainingDataGenerator(Sequence):
 
 	def on_epoch_end(self):
 		positive_samples = self.positive_samples
-		idx = np.random.permutation(len(positive_samples))
+		idx = np.random.permutation(self.num_positive_samples)
 		self.positive_samples = positive_samples[idx]
-		pass
