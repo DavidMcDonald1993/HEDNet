@@ -3,16 +3,16 @@
 #SBATCH --job-name=G2GSYNRECON
 #SBATCH --output=G2GSYNRECON_%A_%a.out
 #SBATCH --error=G2GSYNRECON_%A_%a.err
-#SBATCH --array=0-749
+#SBATCH --array=0-239
 #SBATCH --time=20:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
 scales=(False)
 datasets=({0..29})
-dims=(2 5 10 25 50)
+dims=(5 10 25 50)
 seeds=(0)
-ks=(02 03 04 05 06)
+ks=(01 03)
 exp=recon_experiment
 
 num_scales=${#scales[@]}
@@ -34,7 +34,6 @@ seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
 
 echo $scale $dataset $dim $seed $k 
-
 
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz

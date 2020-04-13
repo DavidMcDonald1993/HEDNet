@@ -3,16 +3,16 @@
 #SBATCH --job-name=G2GLP
 #SBATCH --output=G2GLP_%A_%a.out
 #SBATCH --error=G2GLP_%A_%a.err
-#SBATCH --array=0-749
+#SBATCH --array=0-1199
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
 scales=(False)
 datasets=(cora_ml citeseer pubmed wiki_vote cora)
-dims=(2 5 10 25 50)
+dims=(5 10 25 50)
 seeds=({0..29})
-ks=(03)
+ks=(01 03)
 exp=lp_experiment
 
 num_scales=${#scales[@]}
@@ -32,11 +32,6 @@ dataset=${datasets[$dataset_id]}
 dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 k=${ks[$k_id]}
-
-dataset=cora 
-dim=10 
-seed=0 
-k=01
 
 data_dir=datasets/${dataset}
 edgelist=${data_dir}/edgelist.tsv.gz

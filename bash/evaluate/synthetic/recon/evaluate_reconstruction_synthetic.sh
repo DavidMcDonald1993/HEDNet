@@ -3,13 +3,13 @@
 #SBATCH --job-name=HEDNETSYNRECON
 #SBATCH --output=HEDNETSYNRECON_%A_%a.out
 #SBATCH --error=HEDNETSYNRECON_%A_%a.err
-#SBATCH --array=0-149
+#SBATCH --array=0-119
 #SBATCH --time=20:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
 datasets=({0..29})
-dims=(2 5 10 25 50)
+dims=(5 10 25 50)
 seeds=(0)
 exp=recon_experiment
 
@@ -26,7 +26,6 @@ dim=${dims[$dim_id]}
 seed=${seeds[$seed_id]}
 
 echo $dataset $dim $seed
-
 
 data_dir=$(printf datasets/synthetic_scale_free/%02d ${dataset})
 edgelist=${data_dir}/edgelist.tsv.gz

@@ -3,13 +3,13 @@
 #SBATCH --job-name=ATPSYNLP
 #SBATCH --output=ATPSYNLP_%A_%a.out
 #SBATCH --error=ATPSYNLP_%A_%a.err
-#SBATCH --array=0-299
+#SBATCH --array=0-239
 #SBATCH --time=30:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
 datasets=({0..29})
-dims=(2 5 10 25 50)
+dims=(5 10 25 50)
 seeds=(0)
 methods=(ln harmonic)
 exp=lp_experiment

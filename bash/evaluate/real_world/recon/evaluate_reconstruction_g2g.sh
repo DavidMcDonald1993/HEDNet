@@ -3,16 +3,16 @@
 #SBATCH --job-name=G2GRECON
 #SBATCH --output=G2GRECON_%A_%a.out
 #SBATCH --error=G2GRECON_%A_%a.err
-#SBATCH --array=0-749
+#SBATCH --array=0-1199
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks=1
 #SBATCH --mem=5G
 
 scales=(False)
 datasets=(cora_ml citeseer pubmed wiki_vote cora)
-dims=(2 5 10 25 50)
+dims=(5 10 25 50)
 seeds=({0..29})
-ks=(03)
+ks=(01 03)
 exp=recon_experiment
 
 num_scales=${#scales[@]}
