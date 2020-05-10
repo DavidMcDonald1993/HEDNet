@@ -28,32 +28,26 @@ def split_edges(graph,
 
 	random.seed(seed)
 	random.shuffle(edges)
-	# random.shuffle(non_edges)
 
 	# ensure every node appears in edgelist
 	nodes = set(graph)
-	# edges = set(edges)
-	cover = []
+
+	cover_edges = []
+
 	if cover:
+
 		for u, v in edges:
 			if u in nodes or v in nodes:
 				nodes -= {u, v}
-				cover.append((u, v))
+				cover_edges.append((u, v))
 			if len(nodes) == 0:
 				break
 		
-		print ("determined cover")
+		print ("determined cover", len(cover_edges))
+		edges = filter(lambda edge: 
+			edge not in cover_edges, edges)
+		print ("filtered cover out of edges")
 
-	# edges = [edge for edge in edges
-	# 	if edge not in cover] + cover
-	edges = filter(lambda edge: edge not in cover, edges)
-	
-	print ("filtered cover out of edges")
-	# edges = list(edges - cover) + list(cover)
-
-	# val_edges = edges[:num_val_edges]
-	# test_edges = edges[num_val_edges:num_val_edges+num_test_edges]
-	# train_edges = edges[num_val_edges+num_test_edges:]
 	val_edges = []
 	test_edges = []
 	train_edges = []
@@ -65,12 +59,9 @@ def split_edges(graph,
 		else:
 			train_edges.append(edge)
 
-	train_edges += cover
+	train_edges += cover_edges
 
 	print ("determined edge split")
-
-	# val_non_edges = non_edges[:num_val_edges*neg_mul]
-	# test_non_edges = non_edges[num_val_edges*neg_mul:num_val_edges*neg_mul+num_test_edges*neg_mul]
 
 	val_non_edges = sample_non_edges(graph, 
 		edge_set, 
@@ -81,7 +72,8 @@ def split_edges(graph,
 		num_test_edges*neg_mul)
 	print ("determined test non edges")
 
-	return train_edges, (val_edges, val_non_edges), (test_edges, test_non_edges)
+	return (train_edges, (val_edges, val_non_edges), 
+		(test_edges, test_non_edges))
 
 def parse_args():
 	'''
@@ -133,7 +125,7 @@ def main():
 	edges = list(graph.edges())
 	print ("enumerated edges")
 
-	(_, (val_edges, val_non_edges), 
+	(training_edges, (val_edges, val_non_edges), 
 	(test_edges, test_non_edges)) = split_edges(graph, 
 		edges, 
 		seed, 
@@ -144,9 +136,9 @@ def main():
 	print ("number of test edges", len(test_edges), 
 		"number of test non edges", len(test_edges))
 
+	N = len(graph)
 	graph.remove_edges_from(val_edges + test_edges) # remove val and test edges
-	graph.add_edges_from(((u, u, {"weight": 0}) for u in graph.nodes())) # ensure that every node appears at least once by adding self loops
-
+	assert len(nx.DiGraph(training_edges)) == N
 	print ("removed edges")
 
 	nx.write_edgelist(graph, training_edgelist_fn, delimiter="\t", data=["weight"])
@@ -156,14 +148,6 @@ def main():
 	write_edgelist_to_file(test_non_edges, test_non_edgelist_fn)
 
 	print ("done")
-
-
-	# h = nx.read_weighted_edgelist(training_edgelist_fn, 
-	# 	delimiter="\t",)
-	# print (len(h), len(h.edges))
-	# for edge in val_edges + test_edges:
-	# 	print (edge)
-	# 	assert edge not in h.edges
 
 if __name__ == "__main__":
 	main()
