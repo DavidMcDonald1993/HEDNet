@@ -2,6 +2,9 @@ import pandas as pd
 import argparse
 import os
 
+from scipy.stats import ttest_rel
+import itertools
+
 def make_dir(d):
 	if not os.path.exists(d):
 		print ("making directory", d)
@@ -40,7 +43,7 @@ def main():
 
 	exp = "{}_experiment".format(args.exp)
 	dims = ["dim={:03}".format(dim) 
-		for dim in (2, 5, 10, 25, 50)]
+		for dim in (5, 10, 25, 50)]
 	baseline_algs = ["ln", "harmonic",] + ["line"] + \
 		["g2g_k={:02d}".format(k) for k in (1, 3)]
 	hednet_algs = ["HEDNet"]
