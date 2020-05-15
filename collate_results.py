@@ -2,7 +2,7 @@ import pandas as pd
 import argparse
 import os
 
-from scipy.stats import ttest_rel
+from scipy.stats import ttest_ind
 import itertools
 
 def make_dir(d):
@@ -103,13 +103,22 @@ def main():
 			sem_df.to_csv(sem_filename)
 
 			# perform t tests
-			for a1, a2 in itertools.product(hednet_algs, 
+			for a1, a2 in itertools.product(
+				hednet_algs, 
 				baseline_algs):
 
-				t, p = ttest_rel(dfs[a1], dfs[a2])
-				ttest_df = pd.DataFrame([t, p], 
+				t, p = ttest_ind(dfs[a1], dfs[a2],
+					nan_policy="omit", equal_var=False)
+
+				p /= 2 # one tailed ttest
+				t[t<0] = 1-t[t<0]
+				
+				m1 = mean_df.loc[a1]
+				m2 = mean_df.loc[a2]
+
+				ttest_df = pd.DataFrame([m1, m2, t, p], 
 					columns=dfs[a1].columns,
-					index=["t-statistic", "p-value"])
+					index=[a1, a2, "t-statistic", "p-value"])
 
 				ttest_df_filename = os.path.join(output_dir_,
 					"{}_{}_ttest-{}-{}.csv".format(dataset, dim,
