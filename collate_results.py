@@ -103,29 +103,36 @@ def main():
 			sem_df.to_csv(sem_filename)
 
 			# perform t tests
+
+			ttest_dir = os.path.join(output_dir_, 
+				"t-tests")
+
 			for a1, a2 in itertools.product(
 				hednet_algs, 
 				baseline_algs):
 
-				t, p = ttest_ind(dfs[a1], dfs[a2],
-					nan_policy="omit", equal_var=False)
-
-				p /= 2 # one tailed ttest
-				p[t<0] = 1-p[t<0]
-				
+				# obtain the means
 				m1 = mean_df.loc[a1]
 				m2 = mean_df.loc[a2]
 
 				index = m1.index
+
+				t, p = ttest_ind(dfs[a1], dfs[a2],
+					nan_policy="omit", equal_var=False)
+				
+				# rank should be minimum
+				t[index.str.contains("rank")] = -t[index.str.contains("rank")]
+
+				p /= 2 # one tailed ttest
+				p[t<0] = 1-p[t<0]
+				
+
 				t = pd.Series(t, index=index, name="t-statistic")
 				p = pd.Series(p, index=index, name="p-value")
 
-				ttest_df = pd.DataFrame([m1, m2, t, p], 
-					# columns=dfs[a1].columns,
-					# index=[a1, a2, "t-statistic", "p-value"]
-					)
+				ttest_df = pd.DataFrame([m1, m2, t, p], )
 
-				ttest_df_filename = os.path.join(output_dir_,
+				ttest_df_filename = os.path.join(ttest_dir,
 					"{}_{}_ttest-{}-{}.csv".format(dataset, dim,
 						a1, a2))
 				print ("writing ttests for", a1, "and", a2,
