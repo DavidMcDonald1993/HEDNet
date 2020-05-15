@@ -53,6 +53,8 @@ def main():
 	output_dir = os.path.join(args.output, exp) 
 	make_dir(output_dir)
 
+	critical_value = 0.05
+
 	for dim in dims:
 
 		output_dir_ = os.path.join(output_dir, 
@@ -130,8 +132,11 @@ def main():
 
 				t = pd.Series(t, index=index, name="t-statistic")
 				p = pd.Series(p, index=index, name="p-value")
+				reject_null = pd.Series(p < critical_value, 
+					index=index,
+					name="rejected_null?")
 
-				ttest_df = pd.DataFrame([m1, m2, t, p], )
+				ttest_df = pd.DataFrame([m1, m2, t, p, reject_null], )
 
 				ttest_df_filename = os.path.join(ttest_dir,
 					"{}_{}_ttest-{}-{}.csv".format(dataset, dim,
