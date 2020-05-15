@@ -106,6 +106,7 @@ def main():
 
 			ttest_dir = os.path.join(output_dir_, 
 				"t-tests")
+			make_dir(ttest_dir)
 
 			for a1, a2 in itertools.product(
 				hednet_algs, 
