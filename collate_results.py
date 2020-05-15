@@ -111,14 +111,19 @@ def main():
 					nan_policy="omit", equal_var=False)
 
 				p /= 2 # one tailed ttest
-				t[t<0] = 1-t[t<0]
+				p[t<0] = 1-p[t<0]
 				
 				m1 = mean_df.loc[a1]
 				m2 = mean_df.loc[a2]
 
+				index = m1.index
+				t = pd.Series(t, index=index, name="t-statistic")
+				p = pd.Series(p, index=index, name="p-value")
+
 				ttest_df = pd.DataFrame([m1, m2, t, p], 
-					columns=dfs[a1].columns,
-					index=[a1, a2, "t-statistic", "p-value"])
+					# columns=dfs[a1].columns,
+					# index=[a1, a2, "t-statistic", "p-value"]
+					)
 
 				ttest_df_filename = os.path.join(output_dir_,
 					"{}_{}_ttest-{}-{}.csv".format(dataset, dim,
